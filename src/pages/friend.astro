@@ -3,11 +3,20 @@ import { Icon } from "astro-icon/components";
 import MainCard from "@/components/MainCard.astro";
 import FriendCard from "@/components/mdx/FriendCard.astro";
 import LinkCard from "@/components/mdx/LinkCard.astro";
+import Showcase from "@/components/mdx/Showcase.astro";
 import CardGroup from "@/components/temple/CardGroup.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 
 // 友链列表：以后加人时在这里追加一项即可（name / avatar / description / url）
-const friends: { name: string; avatar: string; description: string; url: string }[] = [];
+const friends: {
+  name: string;
+  avatar: string;
+  description: string;
+  url: string;
+}[] = [];
+
+// 友站列表：徽章样式（带在线状态检测），为空时页面显示占位提示
+const sites: { name: string; url: string }[] = [];
 ---
 
 <BaseLayout title="友链">
@@ -41,6 +50,26 @@ const friends: { name: string; avatar: string; description: string; url: string 
               </div>
             ) : (
               <p class="text-base-content/70">还没有添加友链，欢迎联系我交换友链。</p>
+            )
+          }
+        </section>
+
+        <!-- 友站区块：sites 数组有内容时渲染徽章，为空时显示占位 -->
+        <section>
+          <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Icon name="lucide:layout-template" class="w-6 h-6 text-primary" />
+            <span>友站</span>
+          </h2>
+
+          {
+            sites.length > 0 ? (
+              <div class="flex flex-wrap items-center gap-3">
+                {sites.map((site) => (
+                  <Showcase name={site.name} url={site.url} />
+                ))}
+              </div>
+            ) : (
+              <p class="text-base-content/70">还没有收录友站，欢迎联系我。</p>
             )
           }
         </section>

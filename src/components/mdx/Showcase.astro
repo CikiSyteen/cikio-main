@@ -15,10 +15,10 @@ const domain = new URL(url).hostname;
   target="_blank"
   rel="noopener noreferrer"
   class="website-badge btn btn-sm btn-outline gap-2"
-  title={`Website: ${name} (${domain})`}
+  title={`站点：${name}（${domain}）`}
 >
-  <div class="status-dot flex h-3 w-3 items-center justify-center rounded-full bg-gray-200" title="Checking status...">
-    <div class="h-2 w-2 rounded-full"></div>
+  <div class="status-dot flex h-3 w-3 items-center justify-center rounded-full bg-gray-200" title="正在检测状态…">
+    <div class="h-2 w-2 rounded-full bg-gray-400"></div>
   </div>
 
   <span class="font-medium">{name}</span>
@@ -42,12 +42,12 @@ const domain = new URL(url).hostname;
         .then(() => {
           dot.classList.remove("bg-gray-400");
           dot.classList.add("bg-green-500");
-          dotContainer.setAttribute("title", "Online");
+          dotContainer.setAttribute("title", "在线");
         })
         .catch(() => {
           dot.classList.remove("bg-gray-400");
           dot.classList.add("bg-red-500");
-          dotContainer.setAttribute("title", "Offline or unreachable");
+          dotContainer.setAttribute("title", "离线或无法访问");
         })
         .finally(() => {
           clearTimeout(timeoutId);
