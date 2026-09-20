@@ -7,6 +7,7 @@ import PostFilter from "./PostFilter.astro";
 
 const {
   title,
+  description,
   url,
   pubDate,
   badge,
@@ -17,36 +18,41 @@ const {
 } = Astro.props as PostData;
 const displayDate = pubDate ? dayjs(pubDate).format(DATE_FORMAT) : "";
 const ogImage = url ? `${String(url).replace("/blog/", "/og/")}.png` : "";
-const socialLinks = [
+// 分享渠道：微信没有网页分享接口（只能在微信内用 JS-SDK），所以微信改为"复制链接"按钮
+const encodedUrl = encodeURIComponent(String(url));
+const encodedTitle = encodeURIComponent(title);
+const encodedSummary = encodeURIComponent(description ?? "");
+const encodedOgImage = encodeURIComponent(ogImage);
+// 保存图片时的文件名
+const postSlug = String(url ?? "")
+  .split("/")
+  .filter(Boolean)
+  .pop();
+
+const shareLinks = [
   {
-    name: "X (Twitter)",
-    icon: "ri:twitter-x-line",
-    class: "bg-black hover:bg-gray-800",
-    url: `https://twitter.com/intent/tweet/?text=${encodeURIComponent(title)}&url=${encodeURIComponent(String(url))}`,
+    name: "QQ",
+    icon: "ri:qq-line",
+    class: "bg-[#12b7f5] hover:bg-[#0fa5dd]",
+    url: `https://connect.qq.com/widget/shareqq/index.html?url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}&pics=${encodedOgImage}`,
   },
   {
-    name: "Telegram",
-    icon: "ri:telegram-line",
-    class: "bg-[#26a5e4] hover:bg-[#1e96d1]",
-    url: `https://telegram.me/share/url?text=${encodeURIComponent(title)}&url=${encodeURIComponent(String(url))}`,
+    name: "QQ空间",
+    icon: "ri:planet-line",
+    class: "bg-[#f5c300] hover:bg-[#e0b200]",
+    url: `https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${encodedUrl}&title=${encodedTitle}&summary=${encodedSummary}&pics=${encodedOgImage}`,
   },
   {
-    name: "Reddit",
-    icon: "ri:reddit-line",
-    class: "bg-[#ff4500] hover:bg-[#e63e00]",
-    url: `https://reddit.com/submit/?url=${encodeURIComponent(String(url))}&title=${encodeURIComponent(title)}`,
-  },
-  {
-    name: "Facebook",
-    icon: "ri:facebook-circle-line",
-    class: "bg-[#0866ff] hover:bg-[#0755d6]",
-    url: `https://facebook.com/sharer/sharer.php?u=${encodeURIComponent(String(url))}`,
+    name: "微博",
+    icon: "ri:weibo-line",
+    class: "bg-[#e6162d] hover:bg-[#cc1327]",
+    url: `https://service.weibo.com/share/share.php?url=${encodedUrl}&title=${encodedTitle}&pic=${encodedOgImage}`,
   },
   {
     name: "邮件",
     icon: "ri:mail-line",
     class: "bg-gray-600 hover:bg-gray-700",
-    url: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(String(url))}`,
+    url: `mailto:?subject=${encodedTitle}&body=${encodedUrl}`,
   },
 ];
 ---
@@ -152,8 +158,18 @@ const socialLinks = [
 
       <!-- 按钮更小巧，排列紧凑 -->
       <div class="flex flex-wrap gap-3 justify-center">
+        <!-- 微信：没有网页分享接口，只能复制链接 -->
+        <button
+          type="button"
+          id="share-wechat-btn"
+          class="btn btn-circle btn-md transition-transform hover:scale-110 bg-[#07c160] hover:bg-[#06ad56]"
+          title="微信（复制链接）"
+        >
+          <span class="sr-only">微信（复制链接）</span>
+          <Icon name="ri:wechat-line" class="w-5 h-5 text-white" />
+        </button>
         {
-          socialLinks.map(({ name, icon, class: bgClass, url }) => (
+          shareLinks.map(({ name, icon, class: bgClass, url }) => (
             <a
               href={url}
               class={`btn btn-circle btn-md transition-transform hover:scale-110 ${bgClass}`}
@@ -166,6 +182,29 @@ const socialLinks = [
             </a>
           ))
         }
+      </div>
+
+      <!-- 复制链接的反馈提示 -->
+      <p
+        id="share-feedback"
+        class="hidden text-center text-sm text-success mt-3"
+      >
+        链接已复制，去微信粘贴给好友吧
+      </p>
+
+      <!-- 保存分享图（构建期生成的 OG 图，右下角带二维码） -->
+      <div class="mt-5 flex flex-col items-center gap-2">
+        <a
+          href={ogImage}
+          download={postSlug ? `cikio-${postSlug}.png` : "cikio.png"}
+          class="btn btn-sm btn-outline gap-2"
+        >
+          <Icon name="lucide:download" class="w-4 h-4" />
+          <span>保存图片</span>
+        </a>
+        <p class="text-xs text-base-content/60 text-center">
+          图片右下角带二维码，扫码即可打开本文；手机上若未自动下载，可长按图片保存。
+        </p>
       </div>
 
       <!-- 底部关闭按钮 -->
@@ -182,6 +221,29 @@ const socialLinks = [
     </form>
   </dialog>
 </div>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    const btn = document.querySelector<HTMLButtonElement>("#share-wechat-btn");
+    const feedback =
+      document.querySelector<HTMLParagraphElement>("#share-feedback");
+    if (!btn || btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
+
+    btn.addEventListener("click", async () => {
+      if (!feedback) return;
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        feedback.textContent = "链接已复制，去微信粘贴给好友吧";
+        feedback.classList.remove("hidden");
+        setTimeout(() => feedback.classList.add("hidden"), 3000);
+      } catch {
+        feedback.textContent = "复制失败，请手动复制地址栏链接";
+        feedback.classList.remove("hidden");
+      }
+    });
+  });
+</script>
 
 <style>
   .modal-backdrop button {
