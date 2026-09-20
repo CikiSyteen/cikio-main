@@ -182,29 +182,17 @@ const shareLinks = [
             </a>
           ))
         }
-      </div>
 
-      <!-- 复制链接的反馈提示 -->
-      <p
-        id="share-feedback"
-        class="hidden text-center text-sm text-success mt-3"
-      >
-        链接已复制，去微信粘贴给好友吧
-      </p>
-
-      <!-- 保存分享图（构建期生成的 OG 图，右下角带二维码） -->
-      <div class="mt-5 flex flex-col items-center gap-2">
+        <!-- 保存图片：与其它分享按钮同款的圆形图标 -->
         <a
           href={ogImage}
           download={postSlug ? `cikio-${postSlug}.png` : "cikio.png"}
-          class="btn btn-sm btn-outline gap-2"
+          class="btn btn-circle btn-md transition-transform hover:scale-110 bg-primary hover:bg-primary/80"
+          title="保存图片"
         >
-          <Icon name="lucide:download" class="w-4 h-4" />
-          <span>保存图片</span>
+          <span class="sr-only">保存图片</span>
+          <Icon name="lucide:download" class="w-5 h-5 text-white" />
         </a>
-        <p class="text-xs text-base-content/60 text-center">
-          图片右下角带二维码，扫码即可打开本文；手机上若未自动下载，可长按图片保存。
-        </p>
       </div>
 
       <!-- 底部关闭按钮 -->
@@ -219,27 +207,48 @@ const shareLinks = [
     <form method="dialog" class="modal-backdrop">
       <button>{t("label.close")}</button>
     </form>
+
+    <!-- 复制结果的 toast 提示（放在 dialog 内，才能浮在弹窗之上） -->
+    <div id="share-toast" class="toast toast-top toast-center z-[9999] hidden">
+      <div class="alert alert-success">
+        <Icon name="lucide:circle-check" class="w-5 h-5" />
+        <span id="share-toast-text">链接已复制，去微信粘贴给好友吧</span>
+      </div>
+    </div>
   </dialog>
 </div>
 
 <script>
   document.addEventListener("astro:page-load", () => {
     const btn = document.querySelector<HTMLButtonElement>("#share-wechat-btn");
-    const feedback =
-      document.querySelector<HTMLParagraphElement>("#share-feedback");
+    const toast = document.querySelector<HTMLDivElement>("#share-toast");
+    const toastText =
+      document.querySelector<HTMLSpanElement>("#share-toast-text");
     if (!btn || btn.dataset.bound === "true") return;
     btn.dataset.bound = "true";
 
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // 用 toast 反馈复制结果：成功与失败换不同颜色的 alert
+    const showToast = (message: string, isError = false) => {
+      if (!toast || !toastText) return;
+      toastText.textContent = message;
+      const alertBox = toast.querySelector(".alert");
+      if (alertBox) {
+        alertBox.classList.toggle("alert-success", !isError);
+        alertBox.classList.toggle("alert-error", isError);
+      }
+      toast.classList.remove("hidden");
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => toast.classList.add("hidden"), 2500);
+    };
+
     btn.addEventListener("click", async () => {
-      if (!feedback) return;
       try {
         await navigator.clipboard.writeText(window.location.href);
-        feedback.textContent = "链接已复制，去微信粘贴给好友吧";
-        feedback.classList.remove("hidden");
-        setTimeout(() => feedback.classList.add("hidden"), 3000);
+        showToast("链接已复制，去微信粘贴给好友吧");
       } catch {
-        feedback.textContent = "复制失败，请手动复制地址栏链接";
-        feedback.classList.remove("hidden");
+        showToast("复制失败，请手动复制地址栏链接", true);
       }
     });
   });
