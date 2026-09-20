@@ -100,9 +100,9 @@ function buildOgTemplate({
   const subtleTextColor = "#64748B";
   const backgroundColor = "#FFFFFF";
 
-  const pubDate = post.data.pubDate.toLocaleDateString("en-US", {
+  const pubDate = post.data.pubDate.toLocaleDateString("zh-CN", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
   });
 

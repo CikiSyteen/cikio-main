@@ -43,7 +43,7 @@ const socialLinks = [
     url: `https://facebook.com/sharer/sharer.php?u=${encodeURIComponent(String(url))}`,
   },
   {
-    name: "Email",
+    name: "邮件",
     icon: "ri:mail-line",
     class: "bg-gray-600 hover:bg-gray-700",
     url: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(String(url))}`,
@@ -54,7 +54,7 @@ const socialLinks = [
 <hr />
 <div class="container p-0">
   <div class="text-right text-sm text-base-content/60 italic mb-2">
-    <Icon name="ri:heart-line" class="w-4 h-4 inline-block align-text-bottom text-error" /> Thanks for reading!
+    <Icon name="ri:heart-line" class="w-4 h-4 inline-block align-text-bottom text-error" /> 感谢阅读！
   </div>
 
   <div class="card bg-base-200 overflow-visible">
@@ -144,7 +144,7 @@ const socialLinks = [
       <div class="w-full mb-4 flex justify-center">
         <img
           src={ogImage}
-          alt={`Share preview for ${title}`}
+          alt={`分享预览：${title}`}
           class="rounded-lg shadow-md max-h-60 object-contain"
           loading="lazy"
         />

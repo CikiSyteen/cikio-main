@@ -6,10 +6,10 @@ import RepositoryCard from "@/components/mdx/RepositoryCard.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 ---
 
-<BaseLayout title="Projects">
+<BaseLayout title="项目">
   <MainCard
-    title="Projects"
-    description="A showcase of my open-source projects and contributions on GitHub."
+    title="项目"
+    description="我在 GitHub 上的开源项目。"
     textOverlay="PROJECTS"
     infoIcon="lucide:code-2"
   >
@@ -17,7 +17,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     <section class="py-4">
       <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
         <Icon name="lucide:star" class="w-6 h-6 text-primary" />
-        <span>Featured Projects</span>
+        <span>精选项目</span>
       </h2>
 
       <GitHubStats username="CikiSyteen" repositoryName="cikio-main" />
@@ -27,7 +27,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     <section class="py-4">
       <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
         <Icon name="lucide:folder" class="w-6 h-6 text-primary" />
-        <span>My Repositories</span>
+        <span>我的仓库</span>
       </h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -42,7 +42,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
           class="btn btn-outline gap-2"
         >
           <Icon name="lucide:github" class="w-5 h-5" />
-          <span>View More on GitHub</span>
+          <span>在 GitHub 查看更多</span>
         </a>
       </div>
     </section>

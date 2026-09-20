@@ -6,11 +6,11 @@ import CardGroup from "@/components/temple/CardGroup.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 ---
 
-<BaseLayout title="Friends">
+<BaseLayout title="友链">
   <CardGroup cols="1">
     <MainCard
-      title="Friends & Resources"
-      description="A collection of useful links and resources."
+      title="友链与资源"
+      description="一些常用的链接与资源。"
       textOverlay="FRIENDS"
       infoIcon="lucide:link"
     >
@@ -19,40 +19,40 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
         <section>
           <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
             <Icon name="lucide:bookmark" class="w-6 h-6 text-primary" />
-            <span>Useful Resources</span>
+            <span>常用资源</span>
           </h2>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <LinkCard
-              title="Astro Documentation"
-              desc="The official documentation for Astro, covering everything from getting started to advanced techniques."
+              title="Astro 官方文档"
+              desc="Astro 的官方文档，从入门到进阶技巧都有。"
               url="https://docs.astro.build"
               icon="simple-icons:astro"
-              categories={["Docs", "Learning", "Reference"]}
+              categories={["文档", "学习", "参考"]}
             />
 
             <LinkCard
-              title="Tailwind CSS Documentation"
-              desc="Learn how to use Tailwind's utility classes to style your website without writing CSS."
+              title="Tailwind CSS 文档"
+              desc="了解如何用 Tailwind 的工具类写样式，不必手写 CSS。"
               url="https://tailwindcss.com/docs"
               icon="simple-icons:tailwindcss"
-              categories={["Docs", "CSS", "Reference"]}
+              categories={["文档", "CSS", "参考"]}
             />
 
             <LinkCard
-              title="DaisyUI Components"
-              desc="Browse DaisyUI's component library and learn how to use them in your project."
+              title="daisyUI 组件库"
+              desc="浏览 daisyUI 的组件库，学习在项目中的用法。"
               url="https://daisyui.com/components/"
               icon="simple-icons:daisyui"
-              categories={["Components", "UI", "Reference"]}
+              categories={["组件", "UI", "参考"]}
             />
 
             <LinkCard
-              title="TypeScript Handbook"
-              desc="The TypeScript Handbook is a comprehensive guide to the TypeScript language."
+              title="TypeScript 手册"
+              desc="TypeScript 官方手册，系统讲解这门语言。"
               url="https://www.typescriptlang.org/docs/handbook/intro.html"
               icon="simple-icons:typescript"
-              categories={["Docs", "TypeScript", "Reference"]}
+              categories={["文档", "TypeScript", "参考"]}
             />
           </div>
         </section>
@@ -63,7 +63,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 
         <div class="text-center">
           <p class="text-base-content/80 mb-4">
-            Want to be featured on this page? Feel free to reach out or contribute to the project!
+            想出现在这个页面上？欢迎联系我交换友链。
           </p>
           <a
             href="https://github.com/CikiSyteen"
@@ -72,7 +72,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
             class="btn btn-primary gap-2"
           >
             <Icon name="lucide:github" class="w-5 h-5" />
-            <span>Contribute on GitHub</span>
+            <span>在 GitHub 上关注我</span>
           </a>
         </div>
       </div>

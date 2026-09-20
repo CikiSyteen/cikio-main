@@ -3,7 +3,13 @@ import slugify from "slugify";
 
 const { url, title } = Astro.props;
 
-const headingId = slugify(title, { lower: true, strict: true });
+// 注意：strict slugify 会把纯中文标题处理成空字符串（如"你好世界" → ""），
+// 因此当结果为空时退回用文章链接生成稳定的 ASCII id，避免出现空 id / 重复 id。
+const slugBase = slugify(title, { lower: true, strict: true });
+const fallbackId = String(url ?? "")
+  .replace(/[^a-zA-Z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+const headingId = slugBase || fallbackId;
 ---
 
 <a href={url} target="_self" class="block hover:-translate-y-0.5 transition-transform duration-300">

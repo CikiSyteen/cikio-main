@@ -21,7 +21,7 @@ const [_, repoName] = repo.split("/");
   data-pinned={isPinned ? "true" : "false"}
   role="link"
   tabindex="0"
-  aria-label={`Open repository ${repo}`}
+  aria-label={`打开仓库 ${repo}`}
 >
   <div class="relative">
     {
@@ -50,7 +50,7 @@ const [_, repoName] = repo.split("/");
         <div class="absolute top-3 right-3">
           <div class="badge badge-primary gap-1">
             <Icon name="lucide:pin" class="w-3 h-3" />
-            Pinned
+            已置顶
           </div>
         </div>
       )
@@ -64,7 +64,7 @@ const [_, repoName] = repo.split("/");
           <span class="loading loading-dots loading-xs"></span>
         </h2>
         <p class="text-base-content/70 text-sm my-2 line-clamp-2 repo-description">
-          <span class="loading loading-dots loading-xs"></span> Loading repository information...
+          <span class="loading loading-dots loading-xs"></span> 正在载入仓库信息…
         </p>
       </div>
 
@@ -139,7 +139,7 @@ const [_, repoName] = repo.split("/");
       this.repoFullName = this.getAttribute("data-repo") || "";
 
       if (!this.repoFullName || !this.repoFullName.includes("/")) {
-        this.showError("Invalid repository format. Expected 'username/repo'");
+        this.showError("仓库格式不正确，应为 '用户名/仓库名'");
         return;
       }
 
@@ -259,7 +259,7 @@ const [_, repoName] = repo.split("/");
         if (error instanceof DOMException && error.name === "AbortError") {
         } else {
           console.error("Error fetching repository data:", error);
-          this.showError("Failed to load repository data");
+          this.showError("仓库数据加载失败");
         }
       }
     }
@@ -268,7 +268,7 @@ const [_, repoName] = repo.split("/");
     updateUI(data: any) {
       // 设置仓库名称和描述
       this.updateTextContent(".repo-title", data.name || this.repoFullName.split("/")[1]);
-      this.updateTextContent(".repo-description", data.description || "No description provided");
+      this.updateTextContent(".repo-description", data.description || "暂无简介");
 
       // 设置统计数据
       this.updateTextContent(".repo-stars span", this.formatNumber(data.stargazers_count));
@@ -284,7 +284,7 @@ const [_, repoName] = repo.split("/");
         }
         this.updateTextContent(".repo-language span:last-child", data.language);
       } else {
-        this.updateTextContent(".repo-language span:last-child", "Not specified");
+        this.updateTextContent(".repo-language span:last-child", "未指定");
       }
 
       // 设置卡片链接
@@ -298,12 +298,12 @@ const [_, repoName] = repo.split("/");
 
     // 显示错误信息
     showError(message: string) {
-      this.updateTextContent(".repo-title", "Error");
+      this.updateTextContent(".repo-title", "出错了");
       this.updateTextContent(".repo-description", message);
       this.updateTextContent(".repo-stars span", "-");
       this.updateTextContent(".repo-forks span", "-");
       this.updateTextContent(".repo-issues span", "-");
-      this.updateTextContent(".repo-language span:last-child", "Unknown");
+      this.updateTextContent(".repo-language span:last-child", "未知");
     }
 
     // 更新元素的文本内容
