@@ -17,7 +17,9 @@ const {
   time,
 } = Astro.props as PostData;
 const displayDate = pubDate ? dayjs(pubDate).format(DATE_FORMAT) : "";
+// 两种 OG 图：原版分享卡片，以及带二维码的分享图（OG 路由的 -qr 变体）
 const ogImage = url ? `${String(url).replace("/blog/", "/og/")}.png` : "";
+const ogImageQr = ogImage.replace(/\.png$/, "-qr.png");
 // 分享渠道：微信没有网页分享接口（只能在微信内用 JS-SDK），所以微信改为"复制链接"按钮
 const encodedUrl = encodeURIComponent(String(url));
 const encodedTitle = encodeURIComponent(title);
@@ -28,6 +30,12 @@ const postSlug = String(url ?? "")
   .split("/")
   .filter(Boolean)
   .pop();
+const saveFileBase = postSlug ? `cikio-${postSlug}` : "cikio";
+// 弹窗内左右滑动的两张图：切到哪张，保存按钮就保存哪张
+const ogSlides = [
+  { src: ogImage, label: "分享卡片", saveName: `${saveFileBase}.png` },
+  { src: ogImageQr, label: "带二维码", saveName: `${saveFileBase}-qr.png` },
+];
 
 const shareLinks = [
   {
@@ -47,12 +55,6 @@ const shareLinks = [
     icon: "ri:weibo-line",
     class: "bg-[#e6162d] hover:bg-[#cc1327]",
     url: `https://service.weibo.com/share/share.php?url=${encodedUrl}&title=${encodedTitle}&pic=${encodedOgImage}`,
-  },
-  {
-    name: "邮件",
-    icon: "ri:mail-line",
-    class: "bg-gray-600 hover:bg-gray-700",
-    url: `mailto:?subject=${encodedTitle}&body=${encodedUrl}`,
   },
 ];
 ---
@@ -147,13 +149,43 @@ const shareLinks = [
         {t("label.shareCard")}
       </h3>
 
-      <div class="w-full mb-4 flex justify-center">
-        <img
-          src={ogImage}
-          alt={`分享预览：${title}`}
-          class="rounded-lg shadow-md max-h-60 object-contain"
-          loading="lazy"
-        />
+      <!-- 两种 OG 图：左右滑动切换，保存按钮跟随当前展示的那张 -->
+      <div class="w-full mb-4">
+        <div
+          id="og-carousel"
+          class="og-carousel flex w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
+        >
+          {
+            ogSlides.map((slide, index) => (
+              <div
+                class="og-slide flex w-full shrink-0 snap-center flex-col items-center gap-2 px-1"
+                data-save-name={slide.saveName}
+              >
+                <img
+                  src={slide.src}
+                  alt={`${slide.label}：${title}`}
+                  class="rounded-lg shadow-md max-h-60 object-contain"
+                  loading={index === 0 ? "eager" : "lazy"}
+                />
+                <span class="text-xs text-base-content/60">{slide.label}</span>
+              </div>
+            ))
+          }
+        </div>
+        <!-- 指示点：点击即可切换 -->
+        <div class="mt-2 flex justify-center gap-2">
+          {
+            ogSlides.map((slide, index) => (
+              <button
+                type="button"
+                class="og-dot h-2 w-2 rounded-full bg-base-content/30 transition-all duration-200"
+                data-index={index}
+                aria-label={`查看第 ${index + 1} 张：${slide.label}`}
+                aria-current={index === 0 ? "true" : "false"}
+              />
+            ))
+          }
+        </div>
       </div>
 
       <!-- 按钮更小巧，排列紧凑 -->
@@ -183,10 +215,11 @@ const shareLinks = [
           ))
         }
 
-        <!-- 保存图片：与其它分享按钮同款的圆形图标 -->
+        <!-- 保存图片：与其它分享按钮同款的圆形图标，保存当前展示的那张 -->
         <a
+          id="share-save-btn"
           href={ogImage}
-          download={postSlug ? `cikio-${postSlug}.png` : "cikio.png"}
+          download={ogSlides[0].saveName}
           class="btn btn-circle btn-md transition-transform hover:scale-110 bg-primary hover:bg-primary/80"
           title="保存图片"
         >
@@ -220,37 +253,104 @@ const shareLinks = [
 
 <script>
   document.addEventListener("astro:page-load", () => {
+    // ---------- 微信：复制链接 + toast 反馈 ----------
     const btn = document.querySelector<HTMLButtonElement>("#share-wechat-btn");
     const toast = document.querySelector<HTMLDivElement>("#share-toast");
     const toastText =
       document.querySelector<HTMLSpanElement>("#share-toast-text");
-    if (!btn || btn.dataset.bound === "true") return;
-    btn.dataset.bound = "true";
 
-    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+    if (btn && btn.dataset.bound !== "true") {
+      btn.dataset.bound = "true";
+      let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-    // 用 toast 反馈复制结果：成功与失败换不同颜色的 alert
-    const showToast = (message: string, isError = false) => {
-      if (!toast || !toastText) return;
-      toastText.textContent = message;
-      const alertBox = toast.querySelector(".alert");
-      if (alertBox) {
-        alertBox.classList.toggle("alert-success", !isError);
-        alertBox.classList.toggle("alert-error", isError);
-      }
-      toast.classList.remove("hidden");
-      if (hideTimer) clearTimeout(hideTimer);
-      hideTimer = setTimeout(() => toast.classList.add("hidden"), 2500);
-    };
+      // 用 toast 反馈复制结果：成功与失败换不同颜色的 alert
+      const showToast = (message: string, isError = false) => {
+        if (!toast || !toastText) return;
+        toastText.textContent = message;
+        const alertBox = toast.querySelector(".alert");
+        if (alertBox) {
+          alertBox.classList.toggle("alert-success", !isError);
+          alertBox.classList.toggle("alert-error", isError);
+        }
+        toast.classList.remove("hidden");
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => toast.classList.add("hidden"), 2500);
+      };
 
-    btn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        showToast("链接已复制，去微信粘贴给好友吧");
-      } catch {
-        showToast("复制失败，请手动复制地址栏链接", true);
-      }
-    });
+      btn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          showToast("链接已复制，去微信粘贴给好友吧");
+        } catch {
+          showToast("复制失败，请手动复制地址栏链接", true);
+        }
+      });
+    }
+
+    // ---------- OG 图轮播：保存按钮跟随当前展示的那张 ----------
+    const modal = document.querySelector<HTMLDialogElement>("#share_modal");
+    const carousel = document.querySelector<HTMLDivElement>("#og-carousel");
+    const saveBtn =
+      document.querySelector<HTMLAnchorElement>("#share-save-btn");
+
+    if (
+      modal &&
+      carousel &&
+      saveBtn &&
+      carousel.dataset.bound !== "true"
+    ) {
+      carousel.dataset.bound = "true";
+      const slides = Array.from(
+        carousel.querySelectorAll<HTMLElement>(".og-slide"),
+      );
+      const dots = Array.from(
+        modal.querySelectorAll<HTMLButtonElement>(".og-dot"),
+      );
+
+      // 切到第 index 张时：同步保存按钮的 href/download，并更新指示点
+      const setActive = (index: number) => {
+        const slide = slides[index];
+        const img = slide?.querySelector("img");
+        if (slide && img) {
+          saveBtn.setAttribute("href", img.getAttribute("src") ?? "");
+          saveBtn.setAttribute(
+            "download",
+            slide.dataset.saveName ?? "cikio.png",
+          );
+        }
+
+        dots.forEach((dot, i) => {
+          const active = i === index;
+          dot.classList.toggle("w-5", active);
+          dot.classList.toggle("bg-primary", active);
+          dot.classList.toggle("w-2", !active);
+          dot.classList.toggle("bg-base-content/30", !active);
+          dot.setAttribute("aria-current", active ? "true" : "false");
+        });
+      };
+
+      const currentIndex = () => {
+        const width = slides[0]?.offsetWidth || 1;
+        const index = Math.round(carousel.scrollLeft / width);
+        return Math.min(slides.length - 1, Math.max(0, index));
+      };
+
+      carousel.addEventListener("scroll", () => setActive(currentIndex()), {
+        passive: true,
+      });
+
+      dots.forEach((dot, i) => {
+        dot.addEventListener("click", () => {
+          carousel.scrollTo({
+            left: i * (slides[0]?.offsetWidth ?? 0),
+            behavior: "smooth",
+          });
+          setActive(i);
+        });
+      });
+
+      setActive(0);
+    }
   });
 </script>
 
@@ -260,6 +360,15 @@ const shareLinks = [
     width: 100%;
     height: 100%;
     opacity: 0;
+  }
+
+  /* OG 图轮播：隐藏横向滚动条，靠滑动与指示点切换 */
+  .og-carousel {
+    scrollbar-width: none;
+  }
+
+  .og-carousel::-webkit-scrollbar {
+    display: none;
   }
 
   /* Remove underlines from PostFilter buttons */

@@ -84,10 +84,13 @@ export const getStaticPaths: GetStaticPaths = async () => {
     (post: CollectionEntry<"blog">) => !post.data.draft,
   );
 
-  return publishedPosts.map((post: CollectionEntry<"blog">) => ({
-    params: { slug: post.id },
-    props: { post },
-  }));
+  // 每篇文章生成两种 OG 图：
+  //   /og/<id>.png     原始分享卡片（无二维码），用于 og:image / twitter:image
+  //   /og/<id>-qr.png  带二维码的分享图，用于保存后扫码打开本文
+  return publishedPosts.flatMap((post: CollectionEntry<"blog">) => [
+    { params: { slug: post.id }, props: { post, withQr: false } },
+    { params: { slug: `${post.id}-qr` }, props: { post, withQr: true } },
+  ]);
 };
 
 let fontCache: FontCache | null = null;
@@ -152,7 +155,8 @@ function buildOgTemplate({
 }: {
   post: CollectionEntry<"blog">;
   avatarBase64: string;
-  qrElement: OgElement;
+  // 不传即生成不带二维码的原始卡片
+  qrElement?: OgElement;
 }) {
   const primaryColor = "#4F46E5";
   const textColor = "#1E293B";
@@ -181,7 +185,7 @@ function buildOgTemplate({
         padding: "60px",
         paddingTop: "60px",
         // 右下角多了二维码后底部变高，留白相应收小，避免长标题被挤出画布
-        paddingBottom: "48px",
+        paddingBottom: qrElement ? "48px" : "80px",
       },
       children: [
         {
@@ -346,8 +350,8 @@ function buildOgTemplate({
                   ],
                 },
               },
-              // 右下角：扫码打开本文
-              qrElement,
+              // 右下角：扫码打开本文（原始卡片没有二维码，此行为空）
+              ...(qrElement ? [qrElement] : []),
             ],
           },
         },
@@ -471,7 +475,7 @@ export async function GET({
   params,
   props,
   site,
-}: APIContext<{ post: CollectionEntry<"blog"> }>) {
+}: APIContext<{ post: CollectionEntry<"blog">; withQr: boolean }>) {
   if (!validateSlug(params?.slug)) {
     const png = await generateFallbackPng();
     return new Response(new Uint8Array(png), {
@@ -484,18 +488,18 @@ export async function GET({
   }
 
   try {
-    const { post } = props;
+    const { post, withQr } = props;
 
     const [{ regular: fontRegular, bold: fontBold }, avatarBase64] =
       await Promise.all([fetchNotoSansSCFonts(), buildAvatarDataUri()]);
 
     // 二维码内容 = 文章正式地址（与页面 canonical 保持一致）
-    const postUrl = new URL(`/blog/${post.id}`, site ?? USER_SITE).toString();
-    const template = buildOgTemplate({
-      post,
-      avatarBase64,
-      qrElement: buildQrElement(postUrl),
-    });
+    const qrElement = withQr
+      ? buildQrElement(
+          new URL(`/blog/${post.id}`, site ?? USER_SITE).toString(),
+        )
+      : undefined;
+    const template = buildOgTemplate({ post, avatarBase64, qrElement });
     const fonts = buildFonts(fontRegular, fontBold);
     const png = await generateOgPng({ template, fonts });
 
