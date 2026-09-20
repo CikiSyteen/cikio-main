@@ -1,20 +1,50 @@
 ---
 import { Icon } from "astro-icon/components";
 import MainCard from "@/components/MainCard.astro";
+import FriendCard from "@/components/mdx/FriendCard.astro";
 import LinkCard from "@/components/mdx/LinkCard.astro";
 import CardGroup from "@/components/temple/CardGroup.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+
+// 友链列表：以后加人时在这里追加一项即可（name / avatar / description / url）
+const friends: { name: string; avatar: string; description: string; url: string }[] = [];
 ---
 
 <BaseLayout title="友链">
   <CardGroup cols="1">
     <MainCard
       title="友链与资源"
-      description="一些常用的链接与资源。"
+      description="友链，以及一些常用的链接与资源。"
       textOverlay="FRIENDS"
       infoIcon="lucide:link"
     >
       <div class="space-y-10">
+        <!-- 友链区块：friends 数组有内容时自动渲染，为空时显示提示 -->
+        <section>
+          <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Icon name="lucide:users" class="w-6 h-6 text-primary" />
+            <span>友链</span>
+          </h2>
+
+          {
+            friends.length > 0 ? (
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {friends.map((friend) => (
+                  <FriendCard
+                    name={friend.name}
+                    avatar={friend.avatar}
+                    description={friend.description}
+                    url={friend.url}
+                    type="friend"
+                  />
+                ))}
+              </div>
+            ) : (
+              <p class="text-base-content/70">还没有添加友链，欢迎联系我交换友链。</p>
+            )
+          }
+        </section>
+
         <!-- Useful Resources Section -->
         <section>
           <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">

@@ -14,49 +14,51 @@ site:
     pageSize: 8 # 每页显示的文章数量
   menu: # 菜单配置
     - id: home # 菜单项的唯一标识符
-      text: Home # 菜单项显示的文本
+      text: 首页 # 菜单项显示的文本
       href: / # 菜单项链接的地址
       svg: "material-symbols:home-outline-rounded"
       target: _self
     - id: about
-      text: About
+      text: 关于
       href: /about
       svg: "material-symbols:info-outline-rounded"
       target: _self
     - id: blog
-      text: Blogs
+      text: 博客
       href: /blog
       svg: "material-symbols:book-2-outline-rounded"
       target: _self
       subItems:
         - id: all
-          text: All blogs
+          text: 所有博客
           href: /blog
           svg: "material-symbols:ink-pen-outline-rounded"
           target: _self
+        # 注意：这两个子菜单指向的是"分类页"，URL 里的 Documentation / Examples
+        # 必须与文章 frontmatter 的 categories 完全一致，改中文时要两边一起改
         - id: documentation
-          text: Documentation
+          text: 文档
           href: /blog/category/Documentation
           svg: "material-symbols:unknown-document-outline-rounded"
           target: _self
         - id: examples
-          text: Examples
+          text: 示例
           href: /blog/category/Examples
           svg: "material-symbols:deployed-code-outline"
           target: _self
         # 子菜单项配置
     - id: project
-      text: Project
+      text: 项目
       href: /project
       svg: "material-symbols:code-blocks-outline"
       target: _self
     - id: friend
-      text: Friend
+      text: 友链
       href: /friend
       svg: "material-symbols:supervisor-account-outline-rounded"
       target: _self
     - id: contact
-      text: Contact
+      text: 联系
       href: "mailto:ciki2099@foxmail.com"
       target: _self
       svg: "material-symbols:attach-email-outline-rounded"
