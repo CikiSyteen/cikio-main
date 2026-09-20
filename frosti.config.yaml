@@ -64,7 +64,7 @@ site:
 # 用户的个人信息
 user:
   name: EveSunMaple # 用户名
-  site: "https://frosti.saroprock.com" # 用户的网站链接
+  site: "https://www.cikio.cn" # 用户的网站链接（同时作为 astro 的 site：canonical / sitemap / RSS / OG 的基准 URL）
   avatar: /profile.png # 用户头像路径
   sidebar: # 侧边栏配置
     social:
