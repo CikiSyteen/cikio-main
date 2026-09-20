@@ -9,18 +9,10 @@ peerDependencyRules:
   allowedVersions:
     astro: "^7.0.0"
 
-overrides:
-  astro: "^7.2.0"
-  tar: "^7.5.21"
-  svgo: "^3.3.4"
-  undici: "^7.29.0"
-  postcss: "^8.5.23"
-  nanoid: "^3.3.17"
-  sharp: "^0.35.3"
-  immutable: "^5.1.8"
-  fast-uri: "^3.1.5"
-  "picomatch@2": "2.3.2"
-  "picomatch@4": "4.0.4"
+# 注意：模板原有的 overrides 已全部移除（2026-09-20）。
+# 那些锁定值来自模板早期（如 svgo 固定在 3.x），而 astro 7.3.3 已改用 svgo@^4，
+# 继续沿用会把依赖降级并重新引入已修复的漏洞。改为让各依赖使用自己声明的版本，
+# 由 pnpm audit 与 lockfile 保证安全与一致性。
 
 onlyBuiltDependencies:
   - esbuild

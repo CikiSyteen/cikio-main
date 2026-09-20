@@ -1,16 +1,17 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { Config } from "@interfaces/site";
-import yaml from "js-yaml";
+// js-yaml 5 起为纯命名导出（无 default export）
+import { load as loadYaml } from "js-yaml";
 
 // 配置文件路径
 const configPath = path.resolve("frosti.config.yaml");
 // 翻译文件路径
 const translationsPath = path.resolve("src/i18n/translations.yaml");
 // 读取并解析 YAML 文件
-const config = yaml.load(fs.readFileSync(configPath, "utf8")) as Config;
+const config = loadYaml(fs.readFileSync(configPath, "utf8")) as Config;
 // 读取并解析翻译文件
-const translationsConfig = yaml.load(
+const translationsConfig = loadYaml(
   fs.readFileSync(translationsPath, "utf8"),
 ) as Record<string, any>;
 
