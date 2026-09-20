@@ -1,0 +1,16 @@
+// Cloudflare Workers 部署配置
+// 本仓库是纯静态站点（astro build 输出到 dist/），因此：
+// 1) 必须提交此配置文件 —— 仓库中没有 Wrangler 配置时，`wrangler deploy` 会触发
+//    Cloudflare 的「自动项目配置」，尝试把项目改造成 Workers SSR 应用（astro add cloudflare），
+//    在 CI 非交互环境下会因依赖安装失败而中断部署。
+// 2) 只声明 assets，不声明 main：无需 Worker 脚本，静态资源直接由边缘提供。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cikio-main",
+  "compatibility_date": "2026-09-20",
+  "assets": {
+    "directory": "./dist",
+    // WordPress/静态站风格：未命中的路径返回 dist/404.html 且状态码为 404
+    "not_found_handling": "404-page"
+  }
+}

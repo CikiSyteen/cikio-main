@@ -74,6 +74,7 @@
     "prettier-plugin-astro": "^0.14.1",
     "sass-embedded": "^1.93.3",
     "shiki": "^1.29.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "4.135.0"
   }
 }

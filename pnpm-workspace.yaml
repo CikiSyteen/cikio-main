@@ -4,6 +4,9 @@ packages:
 allowBuilds:
   esbuild: true
   "@parcel/watcher": true
+  # wrangler 依赖 workerd（Cloudflare Workers 本地运行时）。
+  # 不批准会导致 pnpm 抛 ERR_PNPM_IGNORED_BUILDS 并中断 install/deploy。
+  workerd: true
 
 peerDependencyRules:
   allowedVersions:
@@ -25,3 +28,4 @@ overrides:
 onlyBuiltDependencies:
   - esbuild
   - "@parcel/watcher"
+  - workerd

@@ -29,6 +29,8 @@ public/pagefind/
 # deployment CLI output
 .vercel/
 .netlify/
+.wrangler/
+.dev.vars
 
 # editor / assistant local state
 .codebuddy/
