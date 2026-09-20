@@ -9,8 +9,8 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 
 <BaseLayout title="Home">
   <MainCard
-    title="Welcome to Frosti"
-    description="A modern, responsive, feature-rich blog theme for Astro with dark/light mode and customizable options."
+    title="Welcome to Cikio"
+    description="Cikio is the personal blog of CikiSyteen, sharing notes on development and technology."
     textOverlay="HOME"
     infoIcon="lucide:info"
   >
@@ -21,18 +21,17 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
           <h2
             class="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-loose"
           >
-            🌟 Frosti Blog Theme
+            🌟 Cikio
           </h2>
           <p class="text-xl text-base-content/80 max-w-3xl mb-8">
-            A minimal, responsive, and feature-rich Astro blog theme designed for creators who value beautiful content
-            presentation and exceptional performance.
+            Notes on development, tooling, and the things I build along the way.
           </p>
           <div class="flex flex-wrap gap-4 justify-center">
             <a href="/blog" class="btn btn-primary gap-2 btn-shine-effect">
               <Icon name="lucide:book-open" class="w-5 h-5" />
               <span>Explore Blog</span>
             </a>
-            <a href="https://github.com/EveSunMaple/Frosti" target="_blank" rel="noopener noreferrer" class="btn btn-outline gap-2">
+            <a href="https://github.com/CikiSyteen/cikio-main" target="_blank" rel="noopener noreferrer" class="btn btn-outline gap-2">
               <Icon name="lucide:github" class="w-5 h-5" />
               <span>Star on GitHub</span>
             </a>
@@ -113,8 +112,8 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
                 <h4 class="font-bold">Clone the repository</h4>
               </div>
               <div class="relative w-full">
-                <p class="text-base-content/70 mb-2">Use Git to clone the Frosti repository to your local machine:</p>
-                <Code code="git clone --depth 1 https://github.com/EveSunMaple/Frosti.git Frosti" lang="sh" />
+                <p class="text-base-content/70 mb-2">Use Git to clone the Cikio repository to your local machine:</p>
+                <Code code="git clone --depth 1 https://github.com/CikiSyteen/cikio-main.git cikio" lang="sh" />
               </div>
             </li>
 
@@ -129,7 +128,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
               </div>
               <div class="relative w-full">
                 <p class="text-base-content/70 mb-2">Navigate to the project directory and install dependencies:</p>
-                <Code code="cd Frosti && pnpm install" lang="sh" />
+                <Code code="cd cikio && pnpm install" lang="sh" />
               </div>
             </li>
 
@@ -165,7 +164,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
           <span>Repository Stats</span>
         </h2>
 
-        <GitHubStats username="EveSunMaple" repositoryName="Frosti" />
+        <GitHubStats username="CikiSyteen" repositoryName="cikio-main" />
       </section>
     </div>
   </MainCard>

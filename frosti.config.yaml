@@ -1,8 +1,8 @@
 # 网站的基本信息
 site:
-  tab: Frosti # 浏览器标签栏上显示的文本
-  title: 💠 Frosti # 网站的标题
-  description: A clean, elegant, and fast static blog template! 🚀 Developed with Astro # 网站的描述，用于SEO等
+  tab: Cikio # 浏览器标签栏上显示的文本
+  title: Cikio # 网站的标题
+  description: Cikio — CikiSyteen 的个人博客，记录开发实践与技术笔记。 # 网站的描述，用于SEO等
   language: en # 网站的语言，例如 "en" 是英文
   favicon: /favicon.ico # 网站的图标，用于浏览器标签栏和其他地方显示
   theme: # 更多主题 https://daisyui.com/docs/themes/
@@ -57,48 +57,48 @@ site:
       target: _self
     - id: contact
       text: Contact
-      href: "mailto:contact.evesunmaple@outlook.com"
+      href: "mailto:ciki2099@foxmail.com"
       target: _self
       svg: "material-symbols:attach-email-outline-rounded"
 
 # 用户的个人信息
 user:
-  name: EveSunMaple # 用户名
+  name: CikiSyteen # 用户名
   site: "https://www.cikio.cn" # 用户的网站链接（同时作为 astro 的 site：canonical / sitemap / RSS / OG 的基准 URL）
   avatar: /profile.png # 用户头像路径
   sidebar: # 侧边栏配置
     social:
-      - href: "https://afdian.com/a/saroprock" # 链接
+      - href: "https://afdian.com/a/CikiSyteenIsHere" # 链接
         ariaLabel: Support my work # 图标的可访问性标签
         title: Support my work # 图标的悬浮标题
         svg: "ri:cup-line"
-      - href: "https://github.com/EveSunMaple"
+      - href: "https://github.com/CikiSyteen"
         ariaLabel: Github
         title: Github
         svg: "ri:github-line"
-      - href: "https://space.bilibili.com/438392347"
+      - href: "https://space.bilibili.com/1417882550"
         ariaLabel: BiliBili
         title: BiliBili
         svg: "ri:bilibili-line"
-      - href: "https://x.com/EveSunMaple"
-        ariaLabel: X(twitter)
-        title: X(twitter)
-        svg: "ri:twitter-line"
+      - href: "mailto:ciki2099@foxmail.com"
+        ariaLabel: Email
+        title: Email
+        svg: "ri:mail-line"
   footer:
     social:
-      - href: "https://afdian.com/a/saroprock" # 链接
+      - href: "https://afdian.com/a/CikiSyteenIsHere" # 链接
         ariaLabel: Support my work # 图标的可访问性标签
         title: Support my work # 图标的悬浮标题
         svg: "ri:cup-line"
-      - href: "https://github.com/EveSunMaple"
+      - href: "https://github.com/CikiSyteen"
         ariaLabel: Github
         title: Github
         svg: "ri:github-line"
-      - href: "https://space.bilibili.com/438392347"
+      - href: "https://space.bilibili.com/1417882550"
         ariaLabel: BiliBili
         title: BiliBili
         svg: "ri:bilibili-line"
-      - href: "https://x.com/EveSunMaple"
-        ariaLabel: X(twitter)
-        title: X(twitter)
-        svg: "ri:twitter-line"
+      - href: "mailto:ciki2099@foxmail.com"
+        ariaLabel: Email
+        title: Email
+        svg: "ri:mail-line"
