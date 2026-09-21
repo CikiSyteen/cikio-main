@@ -171,6 +171,21 @@ function buildOgTemplate({
 
   const description = post.data.description;
 
+  // 原版设计（无二维码）的日期放在右下角；带二维码时才把日期挪到作者名下方
+  const dateText: OgElement = {
+    type: "div",
+    props: {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        height: "60px",
+        fontSize: "28px",
+        color: subtleTextColor,
+      },
+      children: pubDate,
+    },
+  };
+
   return {
     type: "div",
     props: {
@@ -249,7 +264,10 @@ function buildOgTemplate({
                         style: {
                           fontSize: "72px",
                           fontWeight: 700,
-                          lineHeight: 1.2,
+                          // line-height 小于字体 ascent+descent 时，g/y 等下伸字形会超出
+                          // line-clamp 的裁剪框被切掉，这里留出行高与下沿余量
+                          lineHeight: 1.25,
+                          paddingBottom: "14px",
                           color: textColor,
                           marginLeft: "25px",
                           display: "-webkit-box",
@@ -334,24 +352,29 @@ function buildOgTemplate({
                               children: USER_NAME,
                             },
                           },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                fontSize: "24px",
-                                color: subtleTextColor,
-                              },
-                              children: pubDate,
-                            },
-                          },
+                          // 只有带二维码的版本才把日期放在作者名下方（给二维码腾位置）
+                          ...(qrElement
+                            ? [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      fontSize: "24px",
+                                      color: subtleTextColor,
+                                    },
+                                    children: pubDate,
+                                  },
+                                },
+                              ]
+                            : []),
                         ],
                       },
                     },
                   ],
                 },
               },
-              // 右下角：扫码打开本文（原始卡片没有二维码，此行为空）
-              ...(qrElement ? [qrElement] : []),
+              // 右下角：带二维码时放二维码；原版设计放日期
+              qrElement ?? dateText,
             ],
           },
         },

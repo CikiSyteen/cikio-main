@@ -151,26 +151,47 @@ const shareLinks = [
 
       <!-- 两种 OG 图：左右滑动切换，保存按钮跟随当前展示的那张 -->
       <div class="w-full mb-4">
-        <div
-          id="og-carousel"
-          class="og-carousel flex w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
-        >
-          {
-            ogSlides.map((slide, index) => (
-              <div
-                class="og-slide flex w-full shrink-0 snap-center flex-col items-center gap-2 px-1"
-                data-save-name={slide.saveName}
-              >
-                <img
-                  src={slide.src}
-                  alt={`${slide.label}：${title}`}
-                  class="rounded-lg shadow-md max-h-60 object-contain"
-                  loading={index === 0 ? "eager" : "lazy"}
-                />
-                <span class="text-xs text-base-content/60">{slide.label}</span>
-              </div>
-            ))
-          }
+        <!-- 图片区：左右两侧叠加半透明切换按钮 -->
+        <div class="relative">
+          <div
+            id="og-carousel"
+            class="og-carousel flex w-full snap-x snap-mandatory overflow-x-auto scroll-smooth"
+          >
+            {
+              ogSlides.map((slide, index) => (
+                <div
+                  class="og-slide flex w-full shrink-0 snap-center flex-col items-center gap-2 px-1"
+                  data-save-name={slide.saveName}
+                >
+                  <img
+                    src={slide.src}
+                    alt={`${slide.label}：${title}`}
+                    class="rounded-lg shadow-md max-h-60 object-contain"
+                    loading={index === 0 ? "eager" : "lazy"}
+                  />
+                  <span class="text-xs text-base-content/60">{slide.label}</span>
+                </div>
+              ))
+            }
+          </div>
+
+          <!-- 左右切换按钮（双端可用，半透明浮在图片两侧） -->
+          <button
+            type="button"
+            class="og-nav btn btn-circle btn-sm absolute top-1/2 left-1 -translate-y-1/2 border-0 bg-black/35 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60"
+            data-dir="-1"
+            aria-label="上一张"
+          >
+            <Icon name="lucide:chevron-left" class="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            class="og-nav btn btn-circle btn-sm absolute top-1/2 right-1 -translate-y-1/2 border-0 bg-black/35 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60"
+            data-dir="1"
+            aria-label="下一张"
+          >
+            <Icon name="lucide:chevron-right" class="h-5 w-5" />
+          </button>
         </div>
         <!-- 指示点：点击即可切换 -->
         <div class="mt-2 flex justify-center gap-2">
@@ -306,9 +327,14 @@ const shareLinks = [
       const dots = Array.from(
         modal.querySelectorAll<HTMLButtonElement>(".og-dot"),
       );
+      const navButtons = Array.from(
+        modal.querySelectorAll<HTMLButtonElement>(".og-nav"),
+      );
+      let activeIndex = 0;
 
       // 切到第 index 张时：同步保存按钮的 href/download，并更新指示点
       const setActive = (index: number) => {
+        activeIndex = index;
         const slide = slides[index];
         const img = slide?.querySelector("img");
         if (slide && img) {
@@ -335,17 +361,30 @@ const shareLinks = [
         return Math.min(slides.length - 1, Math.max(0, index));
       };
 
+      // 切换到第 index 张（越界则循环）
+      const goTo = (index: number) => {
+        const target =
+          ((index % slides.length) + slides.length) % slides.length;
+        carousel.scrollTo({
+          left: target * (slides[0]?.offsetWidth ?? 0),
+          behavior: "smooth",
+        });
+        setActive(target);
+      };
+
       carousel.addEventListener("scroll", () => setActive(currentIndex()), {
         passive: true,
       });
 
       dots.forEach((dot, i) => {
-        dot.addEventListener("click", () => {
-          carousel.scrollTo({
-            left: i * (slides[0]?.offsetWidth ?? 0),
-            behavior: "smooth",
-          });
-          setActive(i);
+        dot.addEventListener("click", () => goTo(i));
+      });
+
+      // 左右按钮：到头后循环
+      navButtons.forEach((navBtn) => {
+        navBtn.addEventListener("click", () => {
+          const dir = Number(navBtn.dataset.dir) || 1;
+          goTo(activeIndex + dir);
         });
       });
 
