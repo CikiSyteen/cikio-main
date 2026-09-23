@@ -1,102 +1,102 @@
 ---
-title: Testing Mathematical Formulas in Markdown
-description: A demonstration of various mathematical formulas rendered using LaTeX within Markdown.
+title: 在 Markdown 中测试数学公式
+description: 演示如何在 Markdown 中使用 LaTeX 渲染各类数学公式。
 pubDate: May 31 2025
 categories:
-  - Documentation
-  - Examples
+  - 文档
+  - 示例
 tags:
   - Markdown
   - LaTeX
-  - Mathematics
+  - 数学
 badge: LaTeX
 ---
 
-This document serves as a test for rendering mathematical formulas in Markdown using `$$` delimiters.
+本文用来测试在 Markdown 中使用 `$$` 分隔符渲染数学公式的效果。
 
-## Basic Algebra
+## 基础代数
 
-Let's start with some fundamental algebraic expressions.
+先从一些基础的代数表达式开始。
 
-The quadratic formula is given by:
+一元二次方程的求根公式：
 $$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$$
 
-A simple linear equation:
+一个简单的一次函数：
 $$y = mx + c$$
 
-Expansion of a binomial square:
+二项式平方的展开：
 $$(a+b)^2 = a^2 + 2ab + b^2$$
 
 ---
 
-## Calculus
+## 微积分
 
-Here are some common expressions from calculus.
+下面是一些常见的微积分表达式。
 
-The limit definition of a derivative:
+导数的极限定义：
 $$f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
 
-A definite integral:
+一个定积分：
 $$\int_{a}^{b} f(x) dx$$
 
-The Taylor series expansion of $e^x$ around $x=0$:
+$e^x$ 在 $x=0$ 处的泰勒展开：
 $$e^x = \sum_{n=0}^{\infty} \frac{x^n}{n!} = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \cdots$$
 
 ---
 
-## Trigonometry
+## 三角学
 
-Some basic trigonometric identities.
+一些基础的三角恒等式。
 
-Pythagorean identity:
+毕达哥拉斯恒等式（勾股定理的三角形式）：
 $$\sin^2\theta + \cos^2\theta = 1$$
 
-Angle addition formula for sine:
+正弦的和角公式：
 $$\sin(\alpha + \beta) = \sin\alpha\cos\beta + \cos\alpha\sin\beta$$
 
-Euler's formula:
+欧拉公式：
 $$e^{i\theta} = \cos\theta + i\sin\theta$$
 
 ---
 
-## Statistics and Probability
+## 统计与概率
 
-Formulas commonly used in statistics and probability.
+统计与概率中常用的一些公式。
 
-The formula for the mean ($\mu$) of a set of $n$ numbers $x_1, x_2, \ldots, x_n$:
+一组 $n$ 个数 $x_1, x_2, \ldots, x_n$ 的均值（$\mu$）公式：
 $$\mu = \frac{1}{n} \sum_{i=1}^{n} x_i$$
 
-The probability density function of a normal distribution:
+正态分布的概率密度函数：
 $$f(x | \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}$$
 
-Bayes' theorem:
+贝叶斯定理：
 $$P(A|B) = \frac{P(B|A)P(A)}{P(B)}$$
 
 ---
 
-## Linear Algebra
+## 线性代数
 
-Examples from linear algebra.
+来自线性代数的几个例子。
 
-A 2x2 matrix:
+一个 2×2 矩阵：
 $$A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
-The determinant of a 2x2 matrix:
+2×2 矩阵的行列式：
 $$\det(A) = ad - bc$$
 
-Matrix multiplication of two matrices A and B:
+矩阵 A 与矩阵 B 相乘：
 $$C = AB$$
 
 ---
 
-## Physics
+## 物理
 
-A couple of well-known physics equations.
+两个很著名的物理公式。
 
-Einstein's mass-energy equivalence:
+爱因斯坦质能方程：
 $$E = mc^2$$
 
-Newton's second law of motion:
+牛顿第二定律：
 $$F = ma$$
 
-This should provide a good test of how various mathematical formulas are rendered.
+以上内容可以用来检验各类数学公式的渲染效果。

@@ -34,16 +34,17 @@ site:
           href: /blog
           svg: "material-symbols:ink-pen-outline-rounded"
           target: _self
-        # 注意：这两个子菜单指向的是"分类页"，URL 里的 Documentation / Examples
-        # 必须与文章 frontmatter 的 categories 完全一致，改中文时要两边一起改
+        # 注意：这两个子菜单指向的是"分类页"，href 里的分类名
+        # 必须与文章 frontmatter 的 categories 完全一致（2026-09-23 已随内容一起中文化）。
+        # 浏览器会自动把中文编码成 %E6%96%87%E6%A1%A3 这类形式，无需手写编码。
         - id: documentation
           text: 文档
-          href: /blog/category/Documentation
+          href: /blog/category/文档
           svg: "material-symbols:unknown-document-outline-rounded"
           target: _self
         - id: examples
           text: 示例
-          href: /blog/category/Examples
+          href: /blog/category/示例
           svg: "material-symbols:deployed-code-outline"
           target: _self
         # 子菜单项配置

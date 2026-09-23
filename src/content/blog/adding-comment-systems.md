@@ -1,57 +1,57 @@
 ---
-title: Adding Comment Systems to Frosti
-description: A comprehensive guide on how to integrate the Waline comment system into your Frosti blog
+title: 为 Frosti 添加评论系统
+description: 一份完整指南：如何把 Waline 评论系统接入你的 Frosti 博客
 pubDate: 04 15 2025
 image: /image/image4.webp
 categories:
-  - Documentation
+  - 文档
 tags:
   - Frosti
-  - Comments
+  - 评论
   - Waline
   - Astro
 ---
 
-## Introduction
+## 引言
 
-One of the essential features of any blog is the ability for readers to engage with your content through comments. While Frosti provides an excellent foundation for your Astro-based blog, adding a comment system requires a few additional steps. This guide will walk you through integrating the Waline comment system into your Frosti blog.
+评论是博客最核心的能力之一，它让读者能够围绕你的内容展开交流。Frosti 已经为基于 Astro 的博客打下了不错的基础，但要加上评论系统还需要额外几步。本文会带你一步步把 Waline 评论系统接入 Frosti 博客。
 
-Static sites like those built with Astro don't have built-in comment systems since they lack server-side processing. However, we can use third-party comment services that handle the backend for us, while we integrate their frontend components into our site.
+像 Astro 构建的这类静态站点没有服务端处理能力，因此并不自带评论系统。不过我们可以借助第三方评论服务：后端由它们托管，我们只需把对应的前端组件集成到站点里。
 
-## Creating Comment Components in Astro
+## 在 Astro 中创建评论组件
 
-Before diving into a specific comment system, let's understand how to create and use components in Astro. We'll create a reusable component that can be easily added to any page.
+在接入具体的评论系统之前，先了解一下 Astro 里组件的创建与使用方式。我们会做一个可复用组件，方便添加到任意页面。
 
-### Component Structure
+### 组件结构
 
-We'll create our comment component in the `src/components/comments` directory. First, let's ensure this directory exists:
+评论组件放在 `src/components/comments` 目录下。先确认这个目录存在：
 
 ```bash
 mkdir -p src/components/comments
 ```
 
-## Integrating Waline
+## 集成 Waline
 
-[Waline](https://waline.js.org/) is a simple, safe, and feature-rich comment system with backend and frontend separation. It is highly customizable and easy to set up.
+[Waline](https://waline.js.org/) 是一个简单、安全、功能丰富的前后端分离评论系统，可定制程度高，接入也很方便。
 
-### Step 1: Set Up Waline Backend
+### 第一步：搭建 Waline 后端
 
-Before adding Waline to your site, you need to set up the backend:
+在把 Waline 加到站点之前，需要先准备好后端：
 
-1. Create a LeanCloud application to store your comments.
-2. Deploy the Waline server to Vercel or another hosting platform.
+1. 创建一个 LeanCloud 应用，用来存放评论数据。
+2. 把 Waline 服务端部署到 Vercel 或其他托管平台。
 
-Follow the [official Waline guide](https://waline.js.org/guide/get-started/) to set up your backend service. After deploying, you'll get a server URL that you will need for the frontend component.
+按照 [Waline 官方指南](https://waline.js.org/guide/get-started/) 完成后端配置。部署完成后你会得到一个服务端 URL，前端组件需要用到它。
 
-### Step 2: Create the Waline Component
+### 第二步：创建 Waline 组件
 
-Let's create a reusable Waline component:
+接下来创建一个可复用的 Waline 组件：
 
 ```bash
 touch src/components/comments/Waline.astro
 ```
 
-Add the following code to this component:
+把下面的代码写进这个组件：
 
 ```astro
 ---
@@ -134,35 +134,35 @@ const {
 </style>
 ```
 
-### Step 3: Using the Waline Component
+### 第三步：使用 Waline 组件
 
-You can now use the Waline component in your Astro pages or layouts. Here's how to add it to your blog post template:
+现在就可以在 Astro 页面或布局中使用这个 Waline 组件了。下面是把它加到博客文章模板里的写法：
 
 ```astro
 ---
-// In your blog post layout file
+// 在博客文章的布局文件中
 import Waline from "../../components/comments/Waline.astro";
-// Other imports and frontmatter...
+// 其他导入与 frontmatter……
 ---
 
-<!-- Your blog post content -->
+<!-- 你的博客正文 -->
 <article>
   <slot />
 </article>
 
-<!-- Add the comment section -->
+<!-- 添加评论区 -->
 <section class="comments">
-  <h2>Comments</h2>
+  <h2>评论</h2>
   <Waline serverURL="https://your-waline-server.vercel.app" />
 </section>
 ```
 
-Replace `"https://your-waline-server.vercel.app"` with your actual Waline server URL.
+把 `"https://your-waline-server.vercel.app"` 换成你自己实际的 Waline 服务端 URL。
 
-## Troubleshooting
+## 问题排查
 
-### Common Issues
+### 常见问题
 
-- **Comments not displaying:** Make sure your `serverURL` is correctly set and accessible.
-- **CSS issues:** Ensure that the Waline stylesheet is properly loaded.
-- **Deployment issues:** If your server is on Vercel, check the environment variables and deployment logs.
+- **评论不显示：** 检查 `serverURL` 是否配置正确并且可以访问。
+- **样式异常：** 确认 Waline 的样式表已正常加载。
+- **部署问题：** 如果服务端部署在 Vercel，检查环境变量与部署日志。

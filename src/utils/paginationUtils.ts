@@ -31,10 +31,10 @@ async function getTaxonomyPaginationPaths({
       blog.data[key]?.includes(value),
     );
     return paginate(filteredPosts, {
-      params:
-        key === "tags"
-          ? { tag: encodeURIComponent(value) }
-          : { category: encodeURIComponent(value) },
+      // 这里不要预先 encodeURIComponent：Astro 会对 params 自行编码，
+      // 预先编码会让中文分类/标签在构建期与请求路径对不上（NoMatchingStaticPathFound）。
+      // 链接里的编码由模板侧的 encodeURIComponent 负责。
+      params: key === "tags" ? { tag: value } : { category: value },
       pageSize: BLOG_PAGE_SIZE,
     });
   });
