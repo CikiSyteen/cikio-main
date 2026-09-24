@@ -175,10 +175,16 @@ const shareLinks = [
             }
           </div>
 
-          <!-- 左右切换按钮（双端可用，半透明浮在图片两侧） -->
+          <!--
+            左右切换按钮（双端可用，半透明浮在图片两侧）
+            注意：这里不用 daisyUI 的 .btn —— 它在 :active 时会跑 button-pop 关键帧
+            （scale(.95) → 过冲到 1.02 → 回位），点一下就会弹一下；而且它用
+            transform: scale() 直接覆盖 Tailwind 的 -translate-y-1/2，按钮还会往下窜。
+            这里改为自主样式，且只过渡颜色（transition-colors），点击无任何位移。
+          -->
           <button
             type="button"
-            class="og-nav btn btn-circle btn-sm absolute top-1/2 left-1 -translate-y-1/2 border-0 bg-black/35 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60"
+            class="og-nav absolute top-1/2 left-1 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/60"
             data-dir="-1"
             aria-label="上一张"
           >
@@ -186,7 +192,7 @@ const shareLinks = [
           </button>
           <button
             type="button"
-            class="og-nav btn btn-circle btn-sm absolute top-1/2 right-1 -translate-y-1/2 border-0 bg-black/35 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/60"
+            class="og-nav absolute top-1/2 right-1 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/60"
             data-dir="1"
             aria-label="下一张"
           >
