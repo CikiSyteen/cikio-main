@@ -24,7 +24,7 @@ const { headings = [], showTOC = true } = Astro.props as Props;
   搜索与目录是本站独有 —— Fuwari 把搜索放在导航栏、目录放在右侧列，这里保留为同款卡片，
   避免为了对齐设计而丢掉功能。
 -->
-<div class="mb-4">
+<div class="mb-4" transition:persist="sidebar-profile">
   <ProfileBar />
 </div>
 
@@ -33,12 +33,35 @@ const { headings = [], showTOC = true } = Astro.props as Props;
   分类与标签是 shrink-0（保持自身高度），只有目录会让出空间 ——
   因此目录树始终落在屏幕范围内，目录过长时在它内部滚动。
   sidebar-stack 只用于入场动画的逐个延迟（见 global.scss）。
+
+  站内切换页面时只刷新右侧内容区：
+    Profile / 分类 / 标签 与页面内容无关，用 transition:persist 保留 DOM，
+    既不重建也不重播入场动画；目录随文章变化，因此不加 persist，照常随页面刷新。
 -->
 <div class="sidebar-stack flex flex-col lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
-  <CategoriesBar />
-  <TagsBar />
+  <div class="shrink-0" transition:persist="sidebar-categories">
+    <CategoriesBar />
+  </div>
+  <div class="shrink-0" transition:persist="sidebar-tags">
+    <TagsBar />
+  </div>
   <TOCBar headings={headings} showTOC={showTOC} />
 </div>
 
 <!-- 回到顶部按钮固定在窗口右下角，不属于侧栏卡片，放在吸顶区之外 -->
 <ScrollToTop />
+
+<script>
+  // 首次进入时侧栏正常播放入场动画；之后站内换页只刷新右侧内容区，
+  // 侧栏不再重播动画（挂上标记后由 global.scss 里的规则直接落到终态）。
+  // 一次性监听：这里的时长覆盖最长的延迟（250ms）+ 动画时长（300ms）。
+  document.addEventListener(
+    "astro:page-load",
+    () => {
+      window.setTimeout(() => {
+        document.documentElement.setAttribute("data-sidebar-settled", "");
+      }, 700);
+    },
+    { once: true },
+  );
+</script>

@@ -152,6 +152,15 @@ code {
   animation-delay: 250ms;
 }
 
+// 站内切换页面时侧栏不重播入场动画：首次播完后由 Sidebar.astro 打上
+// data-sidebar-settled 标记，此后直接落到终态（只刷新右侧内容区）。
+// 选择器带 html 前缀，特异性高于 .onload-animation，无需依赖书写顺序。
+html[data-sidebar-settled] .sidebar-profile.onload-animation,
+html[data-sidebar-settled] .sidebar-stack .onload-animation {
+  opacity: 1;
+  animation: none;
+}
+
 // Common container for blog pages
 //
 // 性能：这里原先带 backdrop-blur-md（归档页的 .archives-container 正是 @extend 它，
