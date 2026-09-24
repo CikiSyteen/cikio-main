@@ -38,3 +38,6 @@ public/pagefind/
 
 # local pnpm store
 .pnpm-store/
+
+# 独立的重建项目：它有自己的 git 仓库和远程分支，不应作为本仓库的子模块
+fuwari-main/
