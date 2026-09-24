@@ -75,31 +75,58 @@ const jsonLd =
       (function () {
         // theme 存的是**模式**（light / dark / auto），不再是 daisyUI 主题名；
         // 兼容旧值：以前存的 "winter"/"dracula" 会被迁移成对应的 light/dark
-        const stored = localStorage.getItem("theme");
-        const mode =
-          stored === "light" || stored === "dark" || stored === "auto"
-            ? stored
-            : stored === SITE_THEME.light
-              ? "light"
-              : stored === SITE_THEME.dark
-                ? "dark"
-                : "auto";
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
-        document.documentElement.setAttribute(
-          "data-theme",
-          resolved === "dark" ? SITE_THEME.dark : SITE_THEME.light,
-        );
-        document.documentElement.setAttribute("data-theme-type", resolved);
-        localStorage.setItem("theme", mode);
+        const readMode = () => {
+          const stored = localStorage.getItem("theme");
+          if (stored === "light" || stored === "dark" || stored === "auto") return stored;
+          if (stored === SITE_THEME.light) return "light";
+          if (stored === SITE_THEME.dark) return "dark";
+          return "auto";
+        };
+
+        // 当前模式最终应落的主题名（data-theme）与明暗（data-theme-type）
+        const resolveTheme = () => {
+          const mode = readMode();
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const type = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
+          return { mode, type, theme: type === "dark" ? SITE_THEME.dark : SITE_THEME.light };
+        };
+
+        // 只写属性、不读 DOM，因此也能作用在「即将换上的新文档」上
+        const applyTheme = (root) => {
+          const { theme, type } = resolveTheme();
+          root.setAttribute("data-theme", theme);
+          root.setAttribute("data-theme-type", type);
+        };
+
+        // 首次加载：赶在样式计算之前把主题落到 <html>，避免默认（浅色）主题先闪一下
+        const initial = resolveTheme();
+        applyTheme(document.documentElement);
+        localStorage.setItem("theme", initial.mode);
+
+        // 站内换页：新文档的 <html> 带的是服务端渲染的默认主题（浅色），而 swap 时
+        // swapRootAttributes 会把新文档的 <html> 属性整体套用到当前文档上 ——
+        // 若等 astro:after-swap 再改回来，浏览器已经按浅色算过一遍样式、视图过渡也
+        // 据此拍下了「新」快照，于是出现「按钮先浅后深」的闪烁。
+        // 因此在 swap 之前就把主题写进新文档，套用过来的直接就是正确主题。
+        document.addEventListener("astro:before-swap", (event) => {
+          applyTheme(event.newDocument.documentElement);
+        });
+
+        // 兜底：万一某次换页没走到上面的分支（或主题被别的脚本覆盖），交换后再校正一次
+        document.addEventListener("astro:after-swap", () => {
+          if (document.documentElement.getAttribute("data-theme") !== resolveTheme().theme) {
+            applyTheme(document.documentElement);
+          }
+        });
+
+        // 跟随系统：仅 auto 模式响应系统配色变化
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-          if (localStorage.getItem("theme") !== "auto") return;
-          const next = e.matches ? "dark" : "light";
+          if (readMode() !== "auto") return;
           document.documentElement.setAttribute(
             "data-theme",
-            next === "dark" ? SITE_THEME.dark : SITE_THEME.light,
+            e.matches ? SITE_THEME.dark : SITE_THEME.light,
           );
-          document.documentElement.setAttribute("data-theme-type", next);
+          document.documentElement.setAttribute("data-theme-type", e.matches ? "dark" : "light");
         });
       })();
     </script>
@@ -151,21 +178,6 @@ const jsonLd =
     </div>
 
     <MobileTOC headings={headings} showTOC={showTOC} />
-
-    <script define:vars={{ SITE_THEME }} is:inline>
-      document.addEventListener("astro:after-swap", () => {
-        // 视图过渡换页后重新按模式落一次主题（纯客户端状态不会随 DOM 保留）
-        const stored = localStorage.getItem("theme");
-        const mode = stored === "auto" || !stored ? "auto" : stored;
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
-        document.documentElement.setAttribute(
-          "data-theme",
-          resolved === "dark" ? SITE_THEME.dark : SITE_THEME.light,
-        );
-        document.documentElement.setAttribute("data-theme-type", resolved);
-      });
-    </script>
 
     <script is:inline>
       document.addEventListener("astro:page-load", () => {
