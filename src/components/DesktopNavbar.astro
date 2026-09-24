@@ -1,0 +1,124 @@
+---
+/**
+ * 桌面端顶部导航栏 —— 与 Fuwari 的顶部栏同形
+ *
+ * 背景：Frosti 原本只有移动导航栏（Navbar.astro 的 class 带 md:hidden），
+ * 桌面端导航完全由左侧栏承担。这里补一条桌面顶部栏：
+ *   - sticky 吸顶，高度 4.5rem，卡片底色 + 仅下缘圆角，带阴影
+ *   - 左侧站名（主色图标 + 站点标题）
+ *   - 中间菜单（带 subItems 的项用 hover 下拉）
+ *   - 右侧搜索入口 + 主题切换
+ *   - 宽度与页面栅格一致（75rem 容器 + 16px 内边距）
+ *
+ * 移动端不渲染，仍由原 Navbar.astro 负责。
+ */
+import { Icon } from "astro-icon/components";
+import { SITE_MENU, SITE_TITLE, t } from "../config";
+import ThemeToggle from "./widgets/ThemeToggle.astro";
+
+const currentPath = Astro.url.pathname;
+
+type SubMenuItem = {
+  id: string;
+  text: string;
+  href: string;
+  svg: string;
+  target?: string;
+};
+
+type MenuItem = SubMenuItem & {
+  subItems?: SubMenuItem[];
+};
+
+const menu = SITE_MENU as MenuItem[];
+
+// 首页只在完全相等时高亮，其余按前缀匹配（子页面也保持高亮）
+const isActive = (href: string) =>
+  href.startsWith("http") || href.startsWith("mailto:")
+    ? false
+    : currentPath === href || (href !== "/" && currentPath.startsWith(href));
+---
+
+<header class="hidden md:block sticky top-0 z-40">
+  <div class="max-w-[75rem] mx-auto w-full px-4">
+    <div
+      class="bg-base-100 shadow-lg rounded-b-xl h-[4.5rem] flex items-center justify-between px-4"
+    >
+      <!-- 站名 -->
+      <a
+        href="/"
+        class="btn btn-ghost h-[3.25rem] px-5 font-bold hover:scale-105 transition-transform"
+        aria-label={SITE_TITLE}
+      >
+        <span class="flex flex-row items-center text-primary">
+          <Icon name="lucide:house" class="text-[1.75rem] mb-1 mr-2" />
+          {SITE_TITLE}
+        </span>
+      </a>
+
+      <!-- 菜单 -->
+      <nav class="flex items-center gap-1" aria-label={SITE_TITLE}>
+        {
+          menu.map((item) =>
+            item.subItems ? (
+              <div class="dropdown dropdown-hover">
+                <div
+                  tabindex="0"
+                  role="button"
+                  class:list={[
+                    "btn btn-ghost h-11 px-5 font-bold",
+                    isActive(item.href) && "text-primary",
+                  ]}
+                >
+                  <span>{item.text}</span>
+                  <Icon name="lucide:chevron-down" class="w-4 h-4 ml-1" />
+                </div>
+                <ul
+                  tabindex="0"
+                  class="dropdown-content menu bg-base-100 rounded-box shadow-lg w-44 p-2 mt-1 z-50"
+                >
+                  {item.subItems.map((subItem) => (
+                    <li>
+                      <a
+                        href={subItem.href}
+                        target={subItem.target || "_self"}
+                        aria-current={currentPath === subItem.href ? "page" : undefined}
+                        class:list={[currentPath === subItem.href && "active"]}
+                      >
+                        {subItem.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <a
+                href={item.href}
+                target={item.target || "_self"}
+                aria-current={currentPath === item.href ? "page" : undefined}
+                class:list={[
+                  "btn btn-ghost h-11 px-5 font-bold",
+                  isActive(item.href) && "text-primary",
+                ]}
+              >
+                {item.text}
+              </a>
+            ),
+          )
+        }
+      </nav>
+
+      <!-- 右侧功能区 -->
+      <div class="flex items-center gap-1 shrink-0">
+        <a
+          href="/blog/search"
+          class="btn btn-ghost btn-circle h-11 w-11"
+          aria-label={t("label.searchPage")}
+        >
+          <Icon name="lucide:search" class="text-[1.25rem]" />
+        </a>
+        <ThemeToggle />
+      </div>
+    </div>
+  </div>
+</header>

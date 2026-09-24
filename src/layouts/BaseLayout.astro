@@ -1,5 +1,6 @@
 ---
 import { ClientRouter } from "astro:transitions";
+import DesktopNavbar from "@components/DesktopNavbar.astro";
 import Footer from "@components/Footer.astro";
 import Header from "@components/Header.astro";
 import Navbar from "@components/Navbar.astro";
@@ -104,20 +105,28 @@ const jsonLd =
     </a>
 
     <Navbar />
+    <!-- 桌面端顶部栏；移动端由上面的 Navbar 负责，两者互斥（md 断点） -->
+    <DesktopNavbar />
 
-    <div class="max-w-6xl mx-auto w-full flex-grow">
-      <div class="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-4 gap-4 p-4 h-full">
+    <!--
+      容器与栅格对齐 Fuwari：
+        容器 max-w 75rem（原 max-w-6xl = 72rem）
+        栅格 lg 以上为「17.5rem 侧栏 + 自适应内容区」（原为 4 等分栅格、侧栏占 1/4）
+        lg 以下单列，内容在前、侧栏在后（与 Fuwari 一致）
+    -->
+    <div class="max-w-[75rem] mx-auto w-full flex-grow">
+      <div class="grid grid-cols-1 lg:grid-cols-[17.5rem_minmax(0,1fr)] gap-4 p-4 h-full items-start">
         <main
           id="main-content"
           tabindex="-1"
-          class="col-span-1 md:col-span-4 lg:col-span-3 bg-transparent order-1 md:order-2 mt-16 md:mt-0 flex flex-col gap-4"
+          class="col-span-1 min-w-0 bg-transparent order-1 lg:order-2 mt-16 md:mt-0 flex flex-col gap-4"
         >
           <div class="flex-grow flex flex-col gap-4">
             <slot />
           </div>
           <Footer />
         </main>
-        <aside class="col-span-1 bg-transparent order-2 md:order-1 md:top-4">
+        <aside class="col-span-1 w-full lg:w-[17.5rem] lg:max-w-[17.5rem] bg-transparent order-2 lg:order-1">
           <Sidebar headings={headings} showTOC={showTOC} />
           <slot name="sidebar" />
         </aside>
