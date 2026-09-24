@@ -4,8 +4,9 @@ import { t } from "@config";
 import { Icon } from "astro-icon/components";
 import WidgetLayout from "./WidgetLayout.astro";
 
-// 目录卡片带 min-h-0：吸顶列被视口高度限制时，只有目录允许被压缩，
-// 再由内部滚动显示剩余条目，从而保证整棵目录树始终落在屏幕范围内。
+// 目录卡片带 min-h-0：吸附时它被外层容器（Sidebar.astro 里的 sticky 包裹层）
+// 用 lg:max-h-[calc(100vh-2rem)] 限制在视口内，只有目录本身允许被压缩，
+// 再由内部滚动显示剩余条目，从而保证吸附后的整棵目录树始终落在屏幕范围内。
 
 // This prop indicates whether to render the TOC
 // (useful to conditionally show on certain pages)

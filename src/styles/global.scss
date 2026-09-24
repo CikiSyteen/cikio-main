@@ -136,19 +136,21 @@ code {
 
 // 侧栏逐个错开入场：Profile 100ms，其后每张卡片再 +50ms
 // （选择器带两个层级，特异性高于 .onload-animation，避免被简写中的 animation-delay: 0 覆盖）
+// sidebar-stack 的直接子元素是 transition:persist 的外壳（本身不带动画），
+// 动画类在再下一层的卡片上，故用后代选择器点到 .onload-animation。
 .sidebar-profile.onload-animation {
   animation-delay: 100ms;
 }
 
-.sidebar-stack > *:nth-child(1) {
+.sidebar-stack > *:nth-child(1) .onload-animation {
   animation-delay: 150ms;
 }
 
-.sidebar-stack > *:nth-child(2) {
+.sidebar-stack > *:nth-child(2) .onload-animation {
   animation-delay: 200ms;
 }
 
-.sidebar-stack > *:nth-child(3) {
+.sidebar-stack > *:nth-child(3) .onload-animation {
   animation-delay: 250ms;
 }
 

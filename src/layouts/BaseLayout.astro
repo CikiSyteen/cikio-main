@@ -136,7 +136,14 @@ const jsonLd =
           </div>
           <Footer />
         </main>
-        <aside class="col-span-1 w-full lg:w-[17.5rem] lg:max-w-[17.5rem] bg-transparent order-2 lg:order-1">
+        <!--
+          侧栏列在 lg 下用 self-stretch 撑到与内容列同高：
+          目录卡片的吸附（sticky）只能在「包含块内」移动，包含块高度不足时吸附等于失效。
+          撑满后目录才有足够的行程从页面下方一路跟到文章结束。
+        -->
+        <aside
+          class="col-span-1 w-full lg:w-[17.5rem] lg:max-w-[17.5rem] lg:self-stretch bg-transparent order-2 lg:order-1"
+        >
           <Sidebar headings={headings} showTOC={showTOC} />
           <slot name="sidebar" />
         </aside>

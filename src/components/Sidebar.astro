@@ -20,35 +20,45 @@ const { headings = [], showTOC = true } = Astro.props as Props;
 
 <!--
   侧栏结构对齐 Fuwari：
-    Profile 随页面滚走（不吸顶）；分类 / 标签 / 目录在桌面端（lg，与栅格同断点）吸顶。
+    Profile / 分类 / 标签随页面滚走（不吸顶），只有目录卡片会吸附。
   搜索与目录是本站独有 —— Fuwari 把搜索放在导航栏、目录放在右侧列，这里保留为同款卡片，
   避免为了对齐设计而丢掉功能。
--->
-<div class="mb-4" transition:persist="sidebar-profile">
-  <ProfileBar />
-</div>
 
-<!--
-  吸顶区用 lg:max-h-[calc(100vh-2rem)] 把整列限制在视口内（上下各留 1rem）。
-  分类与标签是 shrink-0（保持自身高度），只有目录会让出空间 ——
-  因此目录树始终落在屏幕范围内，目录过长时在它内部滚动。
-  sidebar-stack 只用于入场动画的逐个延迟（见 global.scss）。
+  目录的滚动行为（三层）：
+    1. 默认与普通卡片一样待在文档流里 —— 页面往下滚时它也随之上移（长文章里从下方滚进视野）；
+    2. 上移到距视口顶 1rem 时，lg:sticky lg:top-4 让它停住并保持可见，不再继续上滚；
+    3. 页面往回滚时吸附自然解除，目录随页面下移回到原位，最终移出窗口（不固定在顶部）。
+  吸附只在 lg 及以上的桌面端生效（与栅格断点一致）；窄屏由 MobileTOC 的浮层目录承担。
+
+  lg:min-h-full + 内层 lg:flex-1：把这一列拉高到与内容列同高（BaseLayout 的 aside 已
+  self-stretch），目录卡片才有足够的行程在整个文章范围内吸附。目录本身用
+  lg:max-h-[calc(100vh-2rem)] 限制在视口内，超长时在卡片内部滚动。
+
+  sidebar-stack 同时承担入场动画的逐个延迟（见 global.scss）。
 
   站内切换页面时只刷新右侧内容区：
     Profile / 分类 / 标签 与页面内容无关，用 transition:persist 保留 DOM，
     既不重建也不重播入场动画；目录随文章变化，因此不加 persist，照常随页面刷新。
 -->
-<div class="sidebar-stack flex flex-col lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
-  <div class="shrink-0" transition:persist="sidebar-categories">
-    <CategoriesBar />
+<div class="flex flex-col lg:min-h-full">
+  <div class="mb-4 shrink-0" transition:persist="sidebar-profile">
+    <ProfileBar />
   </div>
-  <div class="shrink-0" transition:persist="sidebar-tags">
-    <TagsBar />
+
+  <div class="sidebar-stack flex flex-col lg:flex-1">
+    <div class="shrink-0" transition:persist="sidebar-categories">
+      <CategoriesBar />
+    </div>
+    <div class="shrink-0" transition:persist="sidebar-tags">
+      <TagsBar />
+    </div>
+    <div class="sidebar-toc flex flex-col min-h-0 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
+      <TOCBar headings={headings} showTOC={showTOC} />
+    </div>
   </div>
-  <TOCBar headings={headings} showTOC={showTOC} />
 </div>
 
-<!-- 回到顶部按钮固定在窗口右下角，不属于侧栏卡片，放在吸顶区之外 -->
+<!-- 回到顶部按钮固定在窗口右下角，不属于侧栏卡片，也不参与目录的吸附 -->
 <ScrollToTop />
 
 <script>
