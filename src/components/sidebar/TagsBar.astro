@@ -14,7 +14,12 @@ const COLLAPSE_THRESHOLD = 20;
 const isCollapsed = tags.length >= COLLAPSE_THRESHOLD;
 ---
 
-<WidgetLayout id="sidebar-tags" name={t("label.tagCard")} isCollapsed={isCollapsed}>
+<WidgetLayout
+  id="sidebar-tags"
+  name={t("label.tagCard")}
+  isCollapsed={isCollapsed}
+  class="shrink-0"
+>
   <a
     slot="action"
     href="/blog/tags"

@@ -4,6 +4,9 @@ import { t } from "@config";
 import { Icon } from "astro-icon/components";
 import WidgetLayout from "./WidgetLayout.astro";
 
+// 目录卡片带 min-h-0：吸顶列被视口高度限制时，只有目录允许被压缩，
+// 再由内部滚动显示剩余条目，从而保证整棵目录树始终落在屏幕范围内。
+
 // This prop indicates whether to render the TOC
 // (useful to conditionally show on certain pages)
 const { headings = [], showTOC = true } = Astro.props as TOCBarProps;
@@ -11,8 +14,12 @@ const { headings = [], showTOC = true } = Astro.props as TOCBarProps;
 
 {
   showTOC && headings.length > 0 && (
-    <WidgetLayout id="sidebar-toc" name={t("label.tableOfContents")}>
-      <nav class="toc-nav max-h-[calc(100vh-24rem)] overflow-y-auto scrollbar-none relative">
+    <WidgetLayout
+      id="sidebar-toc"
+      name={t("label.tableOfContents")}
+      class="min-h-0"
+    >
+      <nav class="toc-nav flex-1 min-h-0 overflow-y-auto scrollbar-none relative">
             {/* Animated active indicator - now moved outside the ul structure */}
             <div
               id="active-indicator"

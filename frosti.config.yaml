@@ -58,11 +58,6 @@ site:
       href: /friend
       svg: "material-symbols:supervisor-account-outline-rounded"
       target: _self
-    - id: contact
-      text: 联系
-      href: "mailto:ciki2099@foxmail.com"
-      target: _self
-      svg: "material-symbols:attach-email-outline-rounded"
 
 # 用户的个人信息
 user:
