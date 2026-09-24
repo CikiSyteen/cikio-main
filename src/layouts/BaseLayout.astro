@@ -123,8 +123,8 @@ const jsonLd =
         栅格 lg 以上为「17.5rem 侧栏 + 自适应内容区」（原为 4 等分栅格、侧栏占 1/4）
         lg 以下单列，内容在前、侧栏在后（与 Fuwari 一致）
     -->
-    <!-- md:pt-[4.5rem] 为固定定位的桌面顶部栏让出位置（它已脱离文档流） -->
-    <div class="max-w-[75rem] mx-auto w-full flex-grow md:pt-[4.5rem]">
+    <!-- 顶部栏是 sticky（占页面布局空间），所以这里不需要给它补任何偏移 -->
+    <div class="max-w-[75rem] mx-auto w-full flex-grow">
       <div class="grid grid-cols-1 lg:grid-cols-[17.5rem_minmax(0,1fr)] gap-4 p-4 h-full items-start">
         <main
           id="main-content"

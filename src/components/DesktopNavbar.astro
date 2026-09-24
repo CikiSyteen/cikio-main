@@ -40,11 +40,13 @@ const isActive = (href: string) =>
 ---
 
 <!--
-  固定定位而非 sticky：sticky 依赖「最近的可滚动祖先」与祖先的 overflow 设置，
-  页面里任何一处 overflow 调整都可能让它悄悄失效。fixed 保证任何情况下都置顶，
-  与项目里移动导航栏的做法一致；栅格容器用 md:pt-[4.5rem] 让出位置。
+  sticky（相对页面）而不是 fixed（相对窗口）：
+  sticky 属于页面布局的一部分 —— 它占用栅格上方的实际空间、宽度与居中都跟随页面容器，
+  滚动时贴住视口顶部不消失；fixed 则脱离文档流、按浏览器窗口定位，会盖住内容，
+  还必须给内容补一段偏移（这正是上一版 md:pt-[4.5rem] 存在的原因），属于窗口级定位。
+  已核实 html / body 及所有祖先容器都没有 overflow 裁剪，sticky 可正常生效。
 -->
-<header class="hidden md:block fixed top-0 left-0 right-0 z-40">
+<header class="hidden md:block sticky top-0 z-40">
   <div class="max-w-[75rem] mx-auto w-full px-4">
     <div
       class="bg-base-100 shadow-lg rounded-b-xl h-[4.5rem] flex items-center justify-between px-4"
