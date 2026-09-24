@@ -2,7 +2,6 @@
 import ScrollToTop from "./widgets/ScrollToTop.astro";
 import CategoriesBar from "./sidebar/CategoriesBar.astro";
 import ProfileBar from "./sidebar/ProfileBar.astro";
-import SearchBar from "./sidebar/SearchBar.astro";
 import TOCBar from "./sidebar/TOCBar.astro";
 import TagsBar from "./sidebar/TagsBar.astro";
 
@@ -28,16 +27,14 @@ const { headings = [], showTOC = true } = Astro.props as Props;
 <div class="mb-4">
   <ProfileBar />
 </div>
-<div class="mb-4">
-  <SearchBar />
-</div>
 
 <!--
   吸顶区用 lg:max-h-[calc(100vh-2rem)] 把整列限制在视口内（上下各留 1rem）。
   分类与标签是 shrink-0（保持自身高度），只有目录会让出空间 ——
   因此目录树始终落在屏幕范围内，目录过长时在它内部滚动。
+  sidebar-stack 只用于入场动画的逐个延迟（见 global.scss）。
 -->
-<div class="flex flex-col lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
+<div class="sidebar-stack flex flex-col lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
   <CategoriesBar />
   <TagsBar />
   <TOCBar headings={headings} showTOC={showTOC} />

@@ -8,7 +8,20 @@ const { title, image } = Astro.props as PostData;
 
 <Card>
   <div>
-    {image && <Image src={image} width="1920" height="1080" alt={title} loading="eager" />}
+    {
+      /* 列表页每张卡片都带封面，eager 会让所有封面同时抢带宽并阻塞首屏渲染；
+         改为懒加载 + 异步解码 */
+      image && (
+        <Image
+          src={image}
+          width="1920"
+          height="1080"
+          alt={title}
+          loading="lazy"
+          decoding="async"
+        />
+      )
+    }
   </div>
   <div class="p-4 sm:p-6">
     <slot />

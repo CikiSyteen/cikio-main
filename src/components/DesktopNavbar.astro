@@ -122,17 +122,62 @@ const isActive = (href: string) =>
         }
       </nav>
 
-      <!-- 右侧功能区 -->
-      <div class="flex items-center gap-1 shrink-0">
-        <a
-          href="/blog/search"
-          class="btn btn-ghost btn-circle h-11 w-11"
-          aria-label={t("label.searchPage")}
-        >
-          <Icon name="lucide:search" class="text-[1.25rem]" />
-        </a>
+      <!-- 右侧功能区：搜索输入框 + 主题切换 -->
+      <div class="flex items-center gap-2 shrink-0">
+        <form id="navbar-search" action="/blog/search" method="get" role="search" class="relative">
+          <input
+            type="search"
+            name="q"
+            placeholder={t("label.searchPlaceholder") || "搜索…"}
+            aria-label={t("label.search") || "搜索"}
+            class="input input-bordered h-10 w-32 lg:w-44 xl:w-56 rounded-full pl-9 pr-3 text-sm"
+          />
+          <Icon
+            name="lucide:search"
+            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/50"
+          />
+        </form>
         <ThemeToggle />
       </div>
     </div>
   </div>
 </header>
+
+<script>
+  import { navigate } from "astro:transitions/client";
+
+  // 表单默认提交会整页刷新，这里改用客户端路由，保留页面过渡动画
+  document.addEventListener("submit", (e) => {
+    const form = (e.target as HTMLElement | null)?.closest?.("#navbar-search");
+    if (!form) return;
+
+    e.preventDefault();
+    const input = form.querySelector('input[name="q"]') as HTMLInputElement | null;
+    const q = input?.value.trim();
+    if (!q) {
+      input?.focus();
+      return;
+    }
+    navigate(`/blog/search?q=${encodeURIComponent(q)}`);
+  });
+
+  // 按 "/" 聚焦顶栏搜索框（该快捷键原先在侧栏搜索卡片里，随搜索框一起搬过来）
+  document.addEventListener("keydown", (e) => {
+    const target = e.target as HTMLElement | null;
+    if (e.key !== "/" || !target) return;
+    if (
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable
+    )
+      return;
+
+    const input = document.querySelector<HTMLInputElement>(
+      '#navbar-search input[name="q"]',
+    );
+    if (!input) return;
+
+    e.preventDefault();
+    input.focus();
+  });
+</script>

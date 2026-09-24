@@ -116,6 +116,42 @@ code {
   }
 }
 
+// Fuwari 的内容入场动画：300ms 淡入 + 从下方 1rem 上移（对应 Fuwari 的 onload-animation）
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onload-animation {
+  opacity: 0;
+  animation: 300ms fadeInUp forwards;
+}
+
+// 侧栏逐个错开入场：Profile 100ms，其后每张卡片再 +50ms
+// （选择器带两个层级，特异性高于 .onload-animation，避免被简写中的 animation-delay: 0 覆盖）
+.sidebar-profile.onload-animation {
+  animation-delay: 100ms;
+}
+
+.sidebar-stack > *:nth-child(1) {
+  animation-delay: 150ms;
+}
+
+.sidebar-stack > *:nth-child(2) {
+  animation-delay: 200ms;
+}
+
+.sidebar-stack > *:nth-child(3) {
+  animation-delay: 250ms;
+}
+
 // Common container for blog pages
 //
 // 性能：这里原先带 backdrop-blur-md（归档页的 .archives-container 正是 @extend 它，
