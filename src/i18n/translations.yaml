@@ -32,6 +32,9 @@ en:
     backToBlog: Back to Blog
     blogPage: Blog
     themeToggle: Theme Toggle
+    lightMode: Light
+    darkMode: Dark
+    systemMode: System
     skipToContent: Skip to main content
     searchPage: Search
     searchPageDescription: Search for articles across the blog
@@ -97,6 +100,9 @@ zh:
     backToBlog: 返回博客
     blogPage: 博客
     themeToggle: 主题切换
+    lightMode: 浅色
+    darkMode: 深色
+    systemMode: 跟随系统
     skipToContent: 跳到主要内容
     searchPage: 搜索
     searchPageDescription: 搜索博客中的所有文章

@@ -39,7 +39,12 @@ const isActive = (href: string) =>
     : currentPath === href || (href !== "/" && currentPath.startsWith(href));
 ---
 
-<header class="hidden md:block sticky top-0 z-40">
+<!--
+  固定定位而非 sticky：sticky 依赖「最近的可滚动祖先」与祖先的 overflow 设置，
+  页面里任何一处 overflow 调整都可能让它悄悄失效。fixed 保证任何情况下都置顶，
+  与项目里移动导航栏的做法一致；栅格容器用 md:pt-[4.5rem] 让出位置。
+-->
+<header class="hidden md:block fixed top-0 left-0 right-0 z-40">
   <div class="max-w-[75rem] mx-auto w-full px-4">
     <div
       class="bg-base-100 shadow-lg rounded-b-xl h-[4.5rem] flex items-center justify-between px-4"
@@ -47,7 +52,7 @@ const isActive = (href: string) =>
       <!-- 站名 -->
       <a
         href="/"
-        class="btn btn-ghost h-[3.25rem] px-5 font-bold hover:scale-105 transition-transform"
+        class="btn btn-ghost h-[3.25rem] px-5 text-xl font-bold hover:scale-105 transition-transform"
         aria-label={SITE_TITLE}
       >
         <span class="flex flex-row items-center text-primary">
@@ -66,30 +71,35 @@ const isActive = (href: string) =>
                   tabindex="0"
                   role="button"
                   class:list={[
-                    "btn btn-ghost h-11 px-5 font-bold",
+                    "btn btn-ghost h-11 px-5 text-base font-bold",
                     isActive(item.href) && "text-primary",
                   ]}
                 >
                   <span>{item.text}</span>
                   <Icon name="lucide:chevron-down" class="w-4 h-4 ml-1" />
                 </div>
-                <ul
-                  tabindex="0"
-                  class="dropdown-content menu bg-base-100 rounded-box shadow-lg w-44 p-2 mt-1 z-50"
-                >
-                  {item.subItems.map((subItem) => (
-                    <li>
-                      <a
-                        href={subItem.href}
-                        target={subItem.target || "_self"}
-                        aria-current={currentPath === subItem.href ? "page" : undefined}
-                        class:list={[currentPath === subItem.href && "active"]}
-                      >
-                        {subItem.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <!--
+                  关键：面板与触发按钮之间**不能有外边距**。
+                  外边距会形成一段既不属于按钮、也不属于面板的空隙，
+                  光标从「博客」移向子项时 hover 判定丢失，菜单就会闪退。
+                  这里改为在面板外层加透明的 pt-2 —— 视觉上仍有间隙，但可悬停区是连续的。
+                -->
+                <div tabindex="0" class="dropdown-content z-50 pt-2 w-44">
+                  <ul class="menu bg-base-100 rounded-box shadow-lg p-2 w-full">
+                    {item.subItems.map((subItem) => (
+                      <li>
+                        <a
+                          href={subItem.href}
+                          target={subItem.target || "_self"}
+                          aria-current={currentPath === subItem.href ? "page" : undefined}
+                          class:list={[currentPath === subItem.href && "active"]}
+                        >
+                          {subItem.text}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             ) : (
               <a
@@ -97,7 +107,7 @@ const isActive = (href: string) =>
                 target={item.target || "_self"}
                 aria-current={currentPath === item.href ? "page" : undefined}
                 class:list={[
-                  "btn btn-ghost h-11 px-5 font-bold",
+                  "btn btn-ghost h-11 px-5 text-base font-bold",
                   isActive(item.href) && "text-primary",
                 ]}
               >

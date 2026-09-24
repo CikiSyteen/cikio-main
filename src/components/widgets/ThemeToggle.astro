@@ -1,87 +1,158 @@
 ---
+/**
+ * 深浅色切换（三级：浅色 / 深色 / 跟随系统）—— 参考 Fuwari 的切换器
+ *
+ * 与旧实现的区别：
+ *  1. 由「浅色 ↔ 深色」两级改为三级，新增「跟随系统」并实时响应系统配色变化
+ *  2. localStorage 的 theme 键改存**模式**（light / dark / auto），
+ *     不再存 daisyUI 主题名；旧的 "winter"/"dracula" 值会在初始化时自动迁移
+ *  3. 悬停/聚焦时展开一个模式面板，可直接指定模式（不再只能靠循环点击）
+ *  4. 面板与触发按钮之间用**内边距**而不是外边距留出视觉间隙 ——
+ *     外边距会造成一段既不属于按钮也不属于面板的空隙，光标经过时 hover 丢失、
+ *     菜单闪退（这也是导航栏「博客」下拉的同一个问题）
+ */
 import { SITE_THEME, t } from "@config";
 import type { ThemeToggleProps } from "@interfaces/data";
 import { Icon } from "astro-icon/components";
 
-// Generate a unique ID for each component instance
+// 同一页面可能有多处切换器（移动导航栏 + 桌面顶部栏），各自需要唯一 id
 const uniqueId = `theme-toggle-${Math.random().toString(36).substring(2, 11)}`;
+const panelId = `${uniqueId}-panel`;
+
+const modes = [
+  { key: "light", labelKey: "label.lightMode", icon: "lucide:sun" },
+  { key: "dark", labelKey: "label.darkMode", icon: "lucide:moon" },
+  { key: "auto", labelKey: "label.systemMode", icon: "lucide:sun-moon" },
+];
 
 const { className = "" } = Astro.props as ThemeToggleProps;
 ---
 
-<button
-  id={uniqueId}
-  class:list={["btn btn-circle btn-md bg-base-100 shadow-sm hover:scale-110 md:border-base-content/20", className]}
-  aria-label={t("label.themeToggle")}
-  data-theme-toggle
-  title={t("label.themeToggle")}
->
-  <!-- Sun icon for dark mode (shown when dark theme is active) -->
-  <Icon name="lucide:sun" class="theme-toggle-icon h-5 w-5 sun-icon" />
-
-  <!-- Moon icon for light mode (shown when light theme is active) -->
-  <Icon name="lucide:moon" class="theme-toggle-icon h-5 w-5 moon-icon hidden" />
-</button>
-
-<script is:inline define:vars={{ SITE_THEME, uniqueId }}>
-  // Function to update icons based on current theme for a specific toggle button
-  const updateThemeIcons = (toggleButton, isDark) => {
-    if (!toggleButton) return;
-
-    const sunIcon = toggleButton.querySelector(".sun-icon");
-    const moonIcon = toggleButton.querySelector(".moon-icon");
-
-    if (sunIcon && moonIcon) {
-      if (isDark) {
-        sunIcon.classList.remove("hidden");
-        moonIcon.classList.add("hidden");
-      } else {
-        sunIcon.classList.add("hidden");
-        moonIcon.classList.remove("hidden");
-      }
+<div class:list={["dropdown dropdown-end dropdown-hover", className]}>
+  <button
+    id={uniqueId}
+    class="btn btn-circle btn-md bg-base-100 shadow-sm hover:scale-110 md:border-base-content/20"
+    aria-label={t("label.themeToggle")}
+    aria-haspopup="true"
+    data-theme-toggle
+    title={t("label.themeToggle")}
+  >
+    {
+      modes.map((mode) => (
+        <Icon
+          name={mode.icon}
+          class="theme-toggle-icon h-5 w-5"
+          data-theme-icon={mode.key}
+        />
+      ))
     }
-  };
+  </button>
 
-  // Apply correct icons on page load and navigation
-  document.addEventListener("astro:page-load", () => {
-    // Use the unique ID to get this specific toggle button
-    const themeToggle = document.getElementById(uniqueId);
-    if (!themeToggle) return;
+  <!-- 模式面板：pt-2 是「透明的可悬停区」，用来制造视觉间隙又不丢 hover -->
+  <div id={panelId} class="dropdown-content hidden lg:block z-50 pt-2 w-40">
+    <div class="bg-base-100 rounded-box shadow-lg p-2">
+      {
+        modes.map((mode) => (
+          <button
+            class="btn btn-ghost btn-sm w-full justify-start gap-2 font-medium normal-case"
+            data-theme-mode={mode.key}
+          >
+            <Icon name={mode.icon} class="h-4 w-4" />
+            {t(mode.labelKey)}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+</div>
 
-    const currentTheme = document.documentElement.getAttribute("data-theme");
+<script is:inline define:vars={{ SITE_THEME, uniqueId, panelId }}>
+  (() => {
+    const MODES = ["light", "dark", "auto"];
+    const STORAGE_KEY = "theme";
 
-    // Initialize icon state based on current theme
-    updateThemeIcons(themeToggle, currentTheme === SITE_THEME.dark);
+    const isDarkSystem = () =>
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-    // Toggle theme on click
-    themeToggle.addEventListener("click", () => {
-      const currentTheme = document.documentElement.getAttribute("data-theme");
-      const newTheme = currentTheme === SITE_THEME.light ? SITE_THEME.dark : SITE_THEME.light;
+    /** 模式 -> 实际生效的明暗（auto 时看系统偏好） */
+    const resolveMode = (mode) =>
+      mode === "auto" ? (isDarkSystem() ? "dark" : "light") : mode;
 
-      // Add animation class
-      themeToggle.classList.add("animate-spin-once");
+    /** 读取已保存的模式，并迁移旧版本存的 daisyUI 主题名 */
+    const readMode = () => {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === "light" || stored === "dark" || stored === "auto") {
+        return stored;
+      }
+      if (stored === SITE_THEME.light) return "light";
+      if (stored === SITE_THEME.dark) return "dark";
+      return "auto";
+    };
 
-      // Set new theme
-      document.documentElement.setAttribute("data-theme", newTheme);
+    /** 把模式落到 <html> 上：data-theme 用主题名，data-theme-type 用 light/dark */
+    const applyMode = (mode) => {
+      const resolved = resolveMode(mode);
+      document.documentElement.setAttribute(
+        "data-theme",
+        resolved === "dark" ? SITE_THEME.dark : SITE_THEME.light,
+      );
+      document.documentElement.setAttribute("data-theme-type", resolved);
+      localStorage.setItem(STORAGE_KEY, mode);
+    };
 
-      // Set theme type based on which theme is active
-      const themeType = newTheme === SITE_THEME.dark ? "dark" : "light";
-      document.documentElement.setAttribute("data-theme-type", themeType);
+    /** 所有切换器的图标与面板选中态同步 */
+    const syncUI = (mode) => {
+      const resolved = resolveMode(mode);
+      document.querySelectorAll("[data-theme-toggle]").forEach((toggle) => {
+        toggle.querySelectorAll("[data-theme-icon]").forEach((icon) => {
+          // 按钮上显示的是「当前生效的明暗」，auto 模式下显示跟随系统的图标
+          const shown = mode === "auto" ? "auto" : resolved;
+          icon.classList.toggle("hidden", icon.dataset.themeIcon !== shown);
+        });
+      });
+      document.querySelectorAll("[data-theme-mode]").forEach((item) => {
+        item.classList.toggle("btn-active", item.dataset.themeMode === mode);
+      });
+    };
 
-      localStorage.setItem("theme", newTheme);
+    const setMode = (mode, toggle) => {
+      if (toggle) {
+        toggle.classList.add("animate-spin-once");
+        setTimeout(() => toggle.classList.remove("animate-spin-once"), 300);
+      }
+      applyMode(mode);
+      syncUI(mode);
+    };
 
-      // Update icons for all theme toggles on the page
-      const allToggles = document.querySelectorAll("[data-theme-toggle]");
-      allToggles.forEach((toggle) => {
-        updateThemeIcons(toggle, newTheme === SITE_THEME.dark);
+    document.addEventListener("astro:page-load", () => {
+      const current = readMode();
+      applyMode(current);
+      syncUI(current);
+
+      const toggle = document.getElementById(uniqueId);
+      const panel = document.getElementById(panelId);
+
+      // 点击按钮：在三级之间循环
+      toggle?.addEventListener("click", () => {
+        const index = MODES.indexOf(readMode());
+        setMode(MODES[(index + 1) % MODES.length], toggle);
       });
 
-      // Remove animation class after animation completes
-      setTimeout(() => {
-        themeToggle.classList.remove("animate-spin-once");
-      }, 300);
+      // 点击面板中的某一项：直接指定模式
+      panel?.querySelectorAll("[data-theme-mode]").forEach((item) => {
+        item.addEventListener("click", () => setMode(item.dataset.themeMode));
+      });
     });
-  });
+
+    // 系统配色变化时，仅在「跟随系统」模式下跟随
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", () => {
+        if (localStorage.getItem(STORAGE_KEY) !== "auto") return;
+        applyMode("auto");
+        syncUI("auto");
+      });
+  })();
 </script>
 
 <style>
@@ -99,8 +170,15 @@ const { className = "" } = Astro.props as ThemeToggleProps;
   }
 
   .theme-toggle-icon {
+    grid-area: 1 / 1;
     transition:
       opacity 0.2s ease-in-out,
       transform 0.2s ease-in-out;
+  }
+
+  /* 三个图标叠放在同一格，切换时只显隐、不改变按钮尺寸 */
+  [data-theme-toggle] {
+    display: grid;
+    place-items: center;
   }
 </style>

@@ -73,24 +73,33 @@ const jsonLd =
 
     <script define:vars={{ SITE_THEME }} is:inline>
       (function () {
-        const storedTheme = localStorage.getItem("theme");
+        // theme 存的是**模式**（light / dark / auto），不再是 daisyUI 主题名；
+        // 兼容旧值：以前存的 "winter"/"dracula" 会被迁移成对应的 light/dark
+        const stored = localStorage.getItem("theme");
+        const mode =
+          stored === "light" || stored === "dark" || stored === "auto"
+            ? stored
+            : stored === SITE_THEME.light
+              ? "light"
+              : stored === SITE_THEME.dark
+                ? "dark"
+                : "auto";
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        let theme;
-        if (storedTheme) {
-          theme = storedTheme;
-        } else {
-          theme = prefersDark ? SITE_THEME.dark : SITE_THEME.light;
-        }
-        document.documentElement.setAttribute("data-theme", theme);
-        const themeType = theme === SITE_THEME.dark ? "dark" : "light";
-        document.documentElement.setAttribute("data-theme-type", themeType);
+        const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
+        document.documentElement.setAttribute(
+          "data-theme",
+          resolved === "dark" ? SITE_THEME.dark : SITE_THEME.light,
+        );
+        document.documentElement.setAttribute("data-theme-type", resolved);
+        localStorage.setItem("theme", mode);
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-          if (!localStorage.getItem("theme")) {
-            const newTheme = e.matches ? SITE_THEME.dark : SITE_THEME.light;
-            document.documentElement.setAttribute("data-theme", newTheme);
-            const newThemeType = e.matches ? "dark" : "light";
-            document.documentElement.setAttribute("data-theme-type", newThemeType);
-          }
+          if (localStorage.getItem("theme") !== "auto") return;
+          const next = e.matches ? "dark" : "light";
+          document.documentElement.setAttribute(
+            "data-theme",
+            next === "dark" ? SITE_THEME.dark : SITE_THEME.light,
+          );
+          document.documentElement.setAttribute("data-theme-type", next);
         });
       })();
     </script>
@@ -114,7 +123,8 @@ const jsonLd =
         栅格 lg 以上为「17.5rem 侧栏 + 自适应内容区」（原为 4 等分栅格、侧栏占 1/4）
         lg 以下单列，内容在前、侧栏在后（与 Fuwari 一致）
     -->
-    <div class="max-w-[75rem] mx-auto w-full flex-grow">
+    <!-- md:pt-[4.5rem] 为固定定位的桌面顶部栏让出位置（它已脱离文档流） -->
+    <div class="max-w-[75rem] mx-auto w-full flex-grow md:pt-[4.5rem]">
       <div class="grid grid-cols-1 lg:grid-cols-[17.5rem_minmax(0,1fr)] gap-4 p-4 h-full items-start">
         <main
           id="main-content"
@@ -137,12 +147,16 @@ const jsonLd =
 
     <script define:vars={{ SITE_THEME }} is:inline>
       document.addEventListener("astro:after-swap", () => {
-        const storedTheme = localStorage.getItem("theme");
-        if (storedTheme) {
-          document.documentElement.setAttribute("data-theme", storedTheme);
-          const themeType = storedTheme === SITE_THEME.dark ? "dark" : "light";
-          document.documentElement.setAttribute("data-theme-type", themeType);
-        }
+        // 视图过渡换页后重新按模式落一次主题（纯客户端状态不会随 DOM 保留）
+        const stored = localStorage.getItem("theme");
+        const mode = stored === "auto" || !stored ? "auto" : stored;
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
+        document.documentElement.setAttribute(
+          "data-theme",
+          resolved === "dark" ? SITE_THEME.dark : SITE_THEME.light,
+        );
+        document.documentElement.setAttribute("data-theme-type", resolved);
       });
     </script>
 
