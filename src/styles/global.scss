@@ -100,7 +100,7 @@ code {
 // Footnotes styles
 // ---------------------------------------------------
 .footnotes {
-  @apply mt-12 p-6 rounded-xl bg-base-200/50 backdrop-blur-sm border border-base-content/20 shadow-sm;
+  @apply mt-12 p-6 rounded-xl bg-base-200/50 border border-base-content/20 shadow-sm;
 
   // Footnote list item
   li {
@@ -117,13 +117,18 @@ code {
 }
 
 // Common container for blog pages
+//
+// 性能：这里原先带 backdrop-blur-md（归档页的 .archives-container 正是 @extend 它，
+// 于是整条时间轴被一个巨大的模糊区域包住）。页面底色是纯色（html 上的 bg-base-300），
+// 对纯色背景做模糊在视觉上没有任何变化，却让浏览器在滚动时对整块区域反复重新合成，
+// 归档页的明显卡顿即来自这里。故移除 backdrop-blur。
 .blog-container {
-  @apply p-4 rounded-2xl bg-base-200/30 backdrop-blur-md border border-base-300/20;
+  @apply p-4 rounded-2xl bg-base-200/30 border border-base-300/20;
 }
 
 // Common stats box
 .stats-box {
-  @apply stats shadow mb-8 w-full bg-base-200/50 backdrop-blur-sm border border-base-content/20;
+  @apply stats shadow mb-8 w-full bg-base-200/50 border border-base-content/20;
 
   .stat-figure {
     @apply text-primary;

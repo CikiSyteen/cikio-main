@@ -20,6 +20,13 @@ import { remarkReadingTime } from "./src/plugins/remark-reading-time";
 export default defineConfig({
   site: USER_SITE,
   output: "static",
+  // 参考 Fuwari 的加载模式（Swup 的 preload）：链接在鼠标悬停（触屏为按下）时就预取
+  // 目标页面，等真正点击时页面已在本地，直接交换 DOM，不再有等待下载解析的停顿。
+  // prefetchAll 让所有站内链接都适用，无需逐个加 data-astro-prefetch。
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: "hover",
+  },
   style: {
     scss: {
       includePaths: ["./src/styles"],
