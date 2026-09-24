@@ -154,11 +154,18 @@ code {
   animation-delay: 250ms;
 }
 
-// 站内切换页面时侧栏不重播入场动画：首次播完后由 Sidebar.astro 打上
-// data-sidebar-settled 标记，此后直接落到终态（只刷新右侧内容区）。
-// 选择器带 html 前缀，特异性高于 .onload-animation，无需依赖书写顺序。
-html[data-sidebar-settled] .sidebar-profile.onload-animation,
-html[data-sidebar-settled] .sidebar-stack .onload-animation {
+// 侧栏入场动画只在文档首次加载播放：首次进入时逐张渐显上移，站内换页只刷新右侧内容区，
+// 侧栏（含每次换页都会重建的目录卡片）不再重播。
+//
+// 标记 .sidebar-settled 由 Sidebar.astro 在首次动画播完后加到 Profile 外壳上 ——
+// 外壳带 transition:persist，换页时整个 DOM 连同上面的类被搬到新页面，标记因此能活过换页。
+// 不要改回「挂在 <html> 上」：Astro 视图过渡的 swapRootAttributes 会在换页时清掉
+// <html> 上的自定义属性，标记一丢规则就不再命中，animation-name 从 none 变回 fadeInUp
+// 反而会重新触发一遍动画（旧实现就是这样失效的）。
+// 标记是 .sidebar-stack 的前一个兄弟，故用兄弟选择器覆盖分类 / 标签 / 目录，
+// 目录卡片插入的那一刻标记已在 DOM 里，因此不存在闪一下再落位的问题。
+.sidebar-settled .sidebar-profile.onload-animation,
+.sidebar-settled ~ .sidebar-stack .onload-animation {
   opacity: 1;
   animation: none;
 }

@@ -41,7 +41,7 @@ const { headings = [], showTOC = true } = Astro.props as Props;
     既不重建也不重播入场动画；目录随文章变化，因此不加 persist，照常随页面刷新。
 -->
 <div class="flex flex-col lg:min-h-full">
-  <div class="mb-4 shrink-0" transition:persist="sidebar-profile">
+  <div class="sidebar-profile-slot mb-4 shrink-0" transition:persist="sidebar-profile">
     <ProfileBar />
   </div>
 
@@ -62,14 +62,18 @@ const { headings = [], showTOC = true } = Astro.props as Props;
 <ScrollToTop />
 
 <script>
-  // 首次进入时侧栏正常播放入场动画；之后站内换页只刷新右侧内容区，
-  // 侧栏不再重播动画（挂上标记后由 global.scss 里的规则直接落到终态）。
+  // 首次进入时侧栏正常播放入场动画；之后站内换页只刷新右侧内容区，侧栏不再重播动画
+  // （挂上标记后由 global.scss 里的规则直接落到终态）。
+  //
+  // 标记挂在 Profile 外壳（.sidebar-profile-slot）而不是 <html> 上：外壳带
+  // transition:persist，换页时 DOM 与类一起被搬到新页面，标记能活过换页；
+  // <html> 上的自定义属性会被 Astro 的 swapRootAttributes 清掉（旧实现即因此失效）。
   // 一次性监听：这里的时长覆盖最长的延迟（250ms）+ 动画时长（300ms）。
   document.addEventListener(
     "astro:page-load",
     () => {
       window.setTimeout(() => {
-        document.documentElement.setAttribute("data-sidebar-settled", "");
+        document.querySelector(".sidebar-profile-slot")?.classList.add("sidebar-settled");
       }, 700);
     },
     { once: true },
