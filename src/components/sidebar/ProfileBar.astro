@@ -1,99 +1,66 @@
 ---
 import { Image } from "astro:assets";
 import { Icon } from "astro-icon/components";
-import {
-  SITE_MENU,
-  USER_AVATAR,
-  USER_NAME,
-  USER_SIDEBAR_SOCIAL_ICONS,
-} from "../../config";
-import Card from "../temple/Card.astro";
+import { USER_AVATAR, USER_BIO, USER_NAME, USER_SIDEBAR_SOCIAL_ICONS } from "../../config";
 
-// Get current path to determine active link
-const currentPath = Astro.url.pathname;
+/**
+ * 侧栏个人卡片，对齐 Fuwari 的 widget/Profile：
+ *   - 卡片内边距 p-3，头像圆角矩形 rounded-xl（不是圆形），移动端限宽 12rem、桌面撑满
+ *   - 头像 hover 时压一层黑色遮罩并浮出图标（点击回首页）
+ *   - 名字 20px 粗体，下方一条主题色小胶囊（4×20px）
+ *   - 简介取自 config.user.bio，留空则不渲染（Fuwari 同样在 bio 为空时隐藏）
+ *   - 社交图标 40×40、圆角 lg、图标 24px（保留 daisyUI 的悬浮提示）
+ *
+ * 注意：这里原本还有一份 SITE_MENU 导航菜单，与顶部导航栏重复，已移除。
+ */
 ---
 
-<Card>
-  <div class="relative p-4 flex flex-col">
-    <div class="p-2 flex justify-center">
-      <Image
-        class="mask mask-circle"
-        format="webp"
-        width={250}
-        height={250}
-        src={USER_AVATAR}
-        alt={`${USER_NAME} 的头像`}
-        loading="eager"
+<div class="bg-base-100 rounded-2xl shadow-lg p-3">
+  <a
+    href="/"
+    aria-label={USER_NAME}
+    class="group relative block mx-auto mb-3 max-w-[12rem] lg:max-w-none rounded-xl overflow-hidden active:scale-95 transition-transform"
+  >
+    <Image
+      src={USER_AVATAR}
+      alt={`${USER_NAME} 的头像`}
+      format="webp"
+      width={250}
+      height={250}
+      loading="eager"
+      class="w-full h-auto object-cover"
+    />
+    <div
+      class="absolute inset-0 flex items-center justify-center bg-transparent group-hover:bg-black/30 group-active:bg-black/50 transition-colors"
+    >
+      <Icon
+        name="lucide:user"
+        class="w-12 h-12 text-white opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200"
       />
     </div>
-    <ul class="menu bg-transparent w-full m-0 p-0 hidden md:flex flex-col items-center lg:items-start">
-      {
-        SITE_MENU.map((item) => (
-          <li class="w-full relative group">
-            {item.subItems ? (
-              <details class="menu-item w-full" data-submenu-id={item.id} open={currentPath.startsWith(item.href)}>
-                <summary class="justify-center lg:justify-start items-center text-center text-xl md:text-3xl lg:text-xl font-bold p-4 hover:bg-base-200 rounded-lg">
-                  <Icon name={item.svg} />
-                  <span class="hidden lg:inline ml-2">{item.text}</span>
-                </summary>
-                <ul class="rounded-lg">
-                  {item.subItems.map((subItem) => (
-                    <li class="relative">
-                      <a
-                        tabindex="0"
-                        class="menu-item text-base md:text-2xl lg:text-base font-bold p-2 hover:bg-base-200 rounded-lg"
-                        id={`header-${subItem.id}`}
-                        href={subItem.href}
-                        target={subItem.target || "_self"}
-                        aria-label={subItem.text}
-                        aria-current={currentPath === subItem.href ? "page" : undefined}
-                      >
-                        <Icon name={subItem.svg} />
-                        <span class="hidden lg:inline ml-2">{subItem.text}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : (
-              <a
-                tabindex="0"
-                class="flex justify-center lg:justify-start items-center text-center text-xl md:text-3xl lg:text-xl font-bold p-4 hover:bg-base-200 rounded-lg"
-                id={item.id}
-                href={item.href}
-                target={item.target || "_self"}
-                aria-label={item.text}
-                aria-current={currentPath === item.href ? "page" : undefined}
-              >
-                <Icon name={item.svg} />
-                <span class="hidden lg:inline ml-2">{item.text}</span>
-              </a>
-            )}
-          </li>
-        ))
-      }
-    </ul>
+  </a>
 
-    <!-- Social Icons -->
-    <div class="mt-4 pt-3 border-t border-base-content/20">
-      <div class="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-2 justify-items-center">
-        {
-          USER_SIDEBAR_SOCIAL_ICONS.map((icon) => (
-            <div class="tooltip tooltip-bottom" data-tip={icon.title}>
-              <a
-                tabindex="0"
-                href={icon.href}
-                aria-label={icon.ariaLabel}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn btn-circle btn-ghost"
-              >
-                <Icon name={icon.svg} class="text-xl" />
-              </a>
-            </div>
-          ))
-        }
-      </div>
-    </div>
+  <div class="text-center mb-2.5">
+    <div class="font-bold text-xl mb-1">{USER_NAME}</div>
+    <div aria-hidden="true" class="h-1 w-5 bg-primary rounded-full mx-auto mb-2"></div>
+    {USER_BIO && <div class="text-base text-base-content/60 leading-relaxed">{USER_BIO}</div>}
   </div>
-</Card>
+
+  <div class="flex flex-wrap gap-2 justify-center">
+    {
+      USER_SIDEBAR_SOCIAL_ICONS.map((icon) => (
+        <div class="tooltip tooltip-bottom" data-tip={icon.title}>
+          <a
+            href={icon.href}
+            aria-label={icon.ariaLabel}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center justify-center w-10 h-10 rounded-lg bg-base-200 text-base-content/75 hover:bg-base-300 hover:text-primary active:scale-90 transition-all"
+          >
+            <Icon name={icon.svg} class="w-6 h-6" />
+          </a>
+        </div>
+      ))
+    }
+  </div>
+</div>

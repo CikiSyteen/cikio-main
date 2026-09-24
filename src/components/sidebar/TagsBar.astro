@@ -1,0 +1,43 @@
+---
+import { t } from "@config";
+import { getAllPosts, getTagsWithCount } from "@utils/blogUtils";
+import WidgetLayout from "./WidgetLayout.astro";
+
+// Fuwari 行为：标签按名称字母序（中文按拼音），且所有标签同字号（不按文章数缩放）
+const allPosts = await getAllPosts();
+const tags = Array.from(getTagsWithCount(allPosts).entries())
+  .map(([name, count]) => ({ name, count }))
+  .sort((a, b) => a.name.localeCompare(b.name, "zh"));
+
+// Fuwari 行为：标签数 >= 20 时默认收起（收起高度 7.5rem）
+const COLLAPSE_THRESHOLD = 20;
+const isCollapsed = tags.length >= COLLAPSE_THRESHOLD;
+---
+
+<WidgetLayout id="sidebar-tags" name={t("label.tagCard")} isCollapsed={isCollapsed}>
+  <a
+    slot="action"
+    href="/blog/tags"
+    class="text-sm text-base-content/50 hover:text-primary transition-colors"
+  >
+    {t("label.allTags")}
+  </a>
+
+  {
+    tags.length > 0 ? (
+      <div class="flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <a
+            href={`/blog/tag/${encodeURIComponent(tag.name)}`}
+            title={`${tag.count} ${t("label.posts")}`}
+            class="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-base-200 text-base-content/75 hover:bg-base-300 hover:text-primary active:bg-base-300 transition-colors"
+          >
+            {tag.name}
+          </a>
+        ))}
+      </div>
+    ) : (
+      <p class="py-2 text-sm text-base-content/50">{t("label.noTag")}</p>
+    )
+  }
+</WidgetLayout>

@@ -1,34 +1,34 @@
 ---
 import { t } from "@config";
 import { Icon } from "astro-icon/components";
-import Card from "../temple/Card.astro";
+import WidgetLayout from "./WidgetLayout.astro";
+
+// Fuwari 的侧栏没有搜索（搜索在导航栏），这里保留站内搜索并用同款 widget 外壳
 ---
 
-<Card>
-  <div class="p-4">
-    <form action="/blog/search" method="get" class="relative w-full">
-      <div class="search-container w-full relative">
-        <input
-          type="text"
-          name="q"
-          placeholder={t("label.searchPlaceholder") || "搜索…"}
-          class="input input-bordered w-full pl-10 pr-16 py-2"
-          aria-label={t("label.search") || "搜索"}
-        />
-        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <Icon name="lucide:search" class="w-5 h-5" />
-        </div>
-        <button
-          type="submit"
-          class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2"
-          aria-label={t("label.search") || "搜索"}
-        >
-          <Icon name="lucide:arrow-right" class="w-4 h-4" />
-        </button>
-      </div>
-    </form>
-  </div>
-</Card>
+<WidgetLayout id="sidebar-search" name={t("label.search")}>
+  <form action="/blog/search" method="get" class="relative w-full">
+    <input
+      type="text"
+      name="q"
+      placeholder={t("label.searchPlaceholder") || "搜索…"}
+      aria-label={t("label.search") || "搜索"}
+      class="input input-bordered w-full h-10 pl-10 pr-10 rounded-lg"
+    />
+    <div
+      class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-base-content/50"
+    >
+      <Icon name="lucide:search" class="w-4 h-4" />
+    </div>
+    <button
+      type="submit"
+      class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-sm btn-circle w-8 h-8 min-h-8"
+      aria-label={t("label.search") || "搜索"}
+    >
+      <Icon name="lucide:arrow-right" class="w-4 h-4" />
+    </button>
+  </form>
+</WidgetLayout>
 
 <script>
   // Focus search input when pressing '/' key

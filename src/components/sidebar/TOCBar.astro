@@ -1,7 +1,8 @@
 ---
 import type { TOCBarProps } from "@interfaces/data";
+import { t } from "@config";
 import { Icon } from "astro-icon/components";
-import Card from "../temple/Card.astro";
+import WidgetLayout from "./WidgetLayout.astro";
 
 // This prop indicates whether to render the TOC
 // (useful to conditionally show on certain pages)
@@ -10,10 +11,8 @@ const { headings = [], showTOC = true } = Astro.props as TOCBarProps;
 
 {
   showTOC && headings.length > 0 && (
-    <div id="toc-container" class="mt-4 z-10 md:max-h-[calc(100vh-2rem)] ">
-      <Card>
-        <div class="p-4">
-          <nav class="toc-nav max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-none relative">
+    <WidgetLayout id="sidebar-toc" name={t("label.tableOfContents")}>
+      <nav class="toc-nav max-h-[calc(100vh-24rem)] overflow-y-auto scrollbar-none relative">
             {/* Animated active indicator - now moved outside the ul structure */}
             <div
               id="active-indicator"
@@ -38,10 +37,8 @@ const { headings = [], showTOC = true } = Astro.props as TOCBarProps;
                 </li>
               ))}
             </ul>
-          </nav>
-        </div>
-      </Card>
-    </div>
+      </nav>
+    </WidgetLayout>
   )
 }
 

@@ -1,0 +1,86 @@
+---
+import { t } from "@config";
+import { Icon } from "astro-icon/components";
+
+/**
+ * 侧栏 widget 外壳，对齐 Fuwari 的 WidgetLayout：
+ *   - 卡片：rounded-2xl(1rem) + shadow-lg + 卡片底色，对应 Fuwari 的 card-base
+ *   - 标题：18px 粗体 + 左侧主题色竖条（4×16px、圆角 6px），竖条用 -left-4 配合标题的 ml-8
+ *   - 折叠：默认收起时限制高度，底部出现「更多」按钮，点击展开（Fuwari 不记忆状态）
+ */
+interface Props {
+  id: string;
+  name: string;
+  isCollapsed?: boolean;
+  collapsedHeight?: string;
+  class?: string;
+}
+
+const {
+  id,
+  name,
+  isCollapsed = false,
+  collapsedHeight = "7.5rem",
+  class: className = "",
+} = Astro.props;
+---
+
+<section
+  id={id}
+  data-widget
+  class={`flex flex-col w-full mb-4 pb-4 bg-base-100 rounded-2xl shadow-lg overflow-hidden ${className}`}
+>
+  <div class="flex items-center justify-between mt-4 mb-2 ml-8 mr-4">
+    <h2 class="relative font-bold text-lg text-base-content">
+      <span
+        aria-hidden="true"
+        class="absolute -left-4 top-[5.5px] w-1 h-4 rounded-md bg-primary"
+      ></span>
+      {name}
+    </h2>
+    <slot name="action" />
+  </div>
+
+  <div
+    class={`widget-body px-4 overflow-hidden ${isCollapsed ? "widget-collapsed" : ""}`}
+    style={isCollapsed ? `--collapsed-height: ${collapsedHeight}` : undefined}
+  >
+    <slot />
+  </div>
+
+  {
+    isCollapsed && (
+      <div class="widget-expand px-4 mt-2">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm w-full h-9 min-h-9 rounded-lg font-normal gap-1 text-base-content/60 hover:text-primary"
+        >
+          <Icon name="lucide:more-horizontal" class="w-7 h-7" />
+          <span class="text-sm">{t("label.learnMore")}</span>
+        </button>
+      </div>
+    )
+  }
+</section>
+
+<style>
+  .widget-collapsed {
+    height: var(--collapsed-height);
+  }
+</style>
+
+<script>
+  // 展开按钮用 document 级事件委托：只绑定一次，视图过渡换页后依然有效，
+  // 重复执行也只是重复移除同一个类，无副作用。
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement | null;
+    const btn = target?.closest?.(".widget-expand button");
+    if (!btn) return;
+
+    const widget = btn.closest("[data-widget]");
+    if (!widget) return;
+
+    widget.querySelector(".widget-body")?.classList.remove("widget-collapsed");
+    btn.parentElement?.classList.add("hidden");
+  });
+</script>

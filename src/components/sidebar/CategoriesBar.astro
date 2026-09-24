@@ -1,0 +1,53 @@
+---
+import { t } from "@config";
+import { getAllPosts, getCategoriesWithPosts } from "@utils/blogUtils";
+import WidgetLayout from "./WidgetLayout.astro";
+
+// Fuwari 行为：分类按名称字母序（中文按拼音），不按文章数排序
+const allPosts = await getAllPosts();
+const categories = Array.from(getCategoriesWithPosts(allPosts).entries())
+  .map(([name, posts]) => ({ name, count: posts.length }))
+  .sort((a, b) => a.name.localeCompare(b.name, "zh"));
+
+// Fuwari 行为：分类数 >= 5 时默认收起（收起高度 7.5rem）
+const COLLAPSE_THRESHOLD = 5;
+const isCollapsed = categories.length >= COLLAPSE_THRESHOLD;
+---
+
+<WidgetLayout
+  id="sidebar-categories"
+  name={t("label.categoryCard")}
+  isCollapsed={isCollapsed}
+>
+  <a
+    slot="action"
+    href="/blog/categories"
+    class="text-sm text-base-content/50 hover:text-primary transition-colors"
+  >
+    {t("label.allCategories")}
+  </a>
+
+  {
+    categories.length > 0 ? (
+      <ul class="flex flex-col gap-0.5">
+        {categories.map((item) => (
+          <li>
+            <a
+              href={`/blog/category/${encodeURIComponent(item.name)}`}
+              class="group flex items-center justify-between h-10 rounded-lg pl-2 pr-1 hover:pl-3 hover:bg-base-200 transition-all"
+            >
+              <span class="truncate text-base-content/80 group-hover:text-primary transition-colors">
+                {item.name}
+              </span>
+              <span class="flex items-center justify-center shrink-0 h-7 min-w-[2rem] px-2 ml-4 rounded-lg text-sm font-bold bg-base-200 text-base-content/60 group-hover:bg-primary group-hover:text-primary-content transition-colors">
+                {item.count}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="py-2 text-sm text-base-content/50">{t("label.noCategory")}</p>
+    )
+  }
+</WidgetLayout>

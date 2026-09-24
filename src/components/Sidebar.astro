@@ -1,8 +1,10 @@
 ---
+import ScrollToTop from "./widgets/ScrollToTop.astro";
+import CategoriesBar from "./sidebar/CategoriesBar.astro";
 import ProfileBar from "./sidebar/ProfileBar.astro";
 import SearchBar from "./sidebar/SearchBar.astro";
 import TOCBar from "./sidebar/TOCBar.astro";
-import ToolBar from "./sidebar/ToolBar.astro";
+import TagsBar from "./sidebar/TagsBar.astro";
 
 interface Props {
   headings?: Array<{
@@ -17,13 +19,24 @@ interface Props {
 const { headings = [], showTOC = true } = Astro.props as Props;
 ---
 
-<div class="relative mb-4">
+<!--
+  侧栏结构对齐 Fuwari：
+    Profile 随页面滚走（不吸顶）；分类 / 标签 / 目录在桌面端（lg，与栅格同断点）吸顶。
+  搜索与目录是本站独有 —— Fuwari 把搜索放在导航栏、目录放在右侧列，这里保留为同款卡片，
+  避免为了对齐设计而丢掉功能。
+-->
+<div class="mb-4">
   <ProfileBar />
 </div>
-<div class="relative mb-4">
+<div class="mb-4">
   <SearchBar />
 </div>
-<div class="md:sticky md:top-4">
-  <ToolBar />
+
+<div class="flex flex-col lg:sticky lg:top-4">
+  <CategoriesBar />
+  <TagsBar />
   <TOCBar headings={headings} showTOC={showTOC} />
 </div>
+
+<!-- 回到顶部按钮固定在窗口右下角，不属于侧栏卡片，放在吸顶区之外 -->
+<ScrollToTop />
