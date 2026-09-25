@@ -53,7 +53,6 @@ const latestPosts = allPosts.slice(0, 5).map((post) => ({
   title: post.data.title,
   description: post.data.description,
   pubDate: post.data.pubDate,
-  categories: post.data.categories,
 }));
 
 // 「日历」用：按日期把文章分组，日历上就能标出哪几天有更新。
@@ -119,20 +118,23 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
       </div>
 
       <!--
-        右栏：小卡片群，2×2 的 bento —— 左侧一列是日期时间与随机一言，右侧是日历。
-        日历带农历与调休，两行的高度都撑得住，所以给它 sm:row-span-2：
-        左列两张卡的高度之和刚好与日历对齐，不会在时钟卡下面留一大块空白。
+        右栏：小卡片群，2×2 的 bento —— 左侧一列是日期时间与一言，右侧是日历。
+        日历带农历与调休、纵向最高，所以给它 sm:row-span-2 跨两行。
+
+        这里刻意不写 items-start，用栅格默认的 align-items: stretch：
+        左列两张卡会被拉伸填满各自那一行，于是卡与卡的上下间距恒等于 gap，
+        且「一言」的下边缘与日历的下边缘齐平，不会在卡下面留半截空白。
+        注意拉伸的是栅格项（外面那层 .home-enter 外壳），里面的卡片要自己
+        加 h-full 才吃得到这个高度。
 
         每个小组件都套一层 .home-enter 外壳 —— 错峰动画靠 nth-child 定位，
         而组件自己会往同级输出 <script>（Astro 把内联的模块脚本留在原位置），
         不套壳的话格子的直接子元素就不再是"三张卡"，序号会被脚本元素打乱。
         窄屏退回单列时按 DOM 顺序堆叠：时钟 → 日历 → 一言。
       -->
-      <div
-        class="home-stagger grid w-full grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 lg:flex-[1.15]"
-      >
+      <div class="home-stagger grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:flex-[1.15]">
         <div class="home-enter sm:col-start-1 sm:row-start-1">
-          <ClockWeatherWidget />
+          <ClockWeatherWidget class="h-full" />
         </div>
         <div class="home-enter sm:col-start-2 sm:row-span-2 sm:row-start-1">
           <CalendarWidget
@@ -144,17 +146,25 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
         {
           HOME_QUOTES.length > 0 && (
             <div class="home-enter sm:col-start-1 sm:row-start-2">
-              <RandomQuoteWidget quotes={HOME_QUOTES} interval={HOME_QUOTE_INTERVAL} />
+              <RandomQuoteWidget
+                quotes={HOME_QUOTES}
+                interval={HOME_QUOTE_INTERVAL}
+                class="h-full"
+              />
             </div>
           )
         }
       </div>
     </div>
 
-    <!-- 下半区：信息量最大的"大卡片"单独占一整行 -->
-    <div class="home-enter-mid">
-      <LatestPostsWidget posts={latestPosts} />
-    </div>
+    <!--
+      下半区：信息量最大的"大卡片"单独占一整行。
+      入场动画挂在区块根节点上（分隔线 + 标题 + 卡片一起淡入），
+      所以卡片自己用 animate={false} 关掉了重复的一层。
+      注意 .home-enter-mid 只提供 animation-delay，必须与 .home-enter 一起用，
+      单独写它不会有任何动画。
+    -->
+    <LatestPostsWidget posts={latestPosts} class="home-enter home-enter-mid" />
 
     <!-- 底部工具带：横贯内容区的一排入口瓦片（对齐 62296d 的 lower-toolbelt-layer） -->
     <SiteNavWidget class="home-enter-late" />

@@ -32,7 +32,8 @@ const weather =
 ---
 
 <WidgetCard id="home-clock" title="日期与时间" icon="lucide:clock" class={className}>
-  <div class="flex flex-1 flex-col gap-3">
+  <!-- justify-between：卡片被栅格拉伸到与同排等高时，把时间留在上方、天气压到底部 -->
+  <div class="flex flex-1 flex-col justify-between gap-3">
     <div class="flex items-baseline gap-0.5 font-mono tabular-nums">
       <span data-clock-time class="text-4xl font-bold tracking-tight">--:--</span>
       <span data-clock-seconds class="text-lg font-semibold text-primary">:--</span>

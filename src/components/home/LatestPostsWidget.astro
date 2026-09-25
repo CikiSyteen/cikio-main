@@ -1,13 +1,17 @@
 ---
-import { DATE_FORMAT } from "@config";
 import dayjs from "@utils/dayjs";
+import { Icon } from "astro-icon/components";
 import WidgetCard from "./WidgetCard.astro";
 
 /**
- * 最新文章小组件。
+ * 最新文章区块。
  *
- * 内容在构建期渲染（静态 HTML），因此对 SEO 友好、零客户端 JS；
- * 数据由 index.astro 查好传进来，组件本身不碰内容集合，方便复用与测试。
+ * 区块头复用「站点导航」那一套构件（渐隐分隔线 + 居中标题），
+ * 让页面下半区的两个区块在视觉上同级；因此卡片本身不再带标题栏
+ * （WidgetCard 不传 title 就不渲染 header），避免同一句话出现两次。
+ *
+ * 条目内容在构建期渲染（静态 HTML），对 SEO 友好、零客户端 JS；
+ * 数据由 index.astro 查好传进来，组件本身不碰内容集合。
  */
 
 export interface LatestPostItem {
@@ -15,7 +19,6 @@ export interface LatestPostItem {
   title: string;
   description: string;
   pubDate: Date;
-  categories?: string[];
 }
 
 export interface LatestPostsWidgetProps {
@@ -24,43 +27,69 @@ export interface LatestPostsWidgetProps {
 }
 
 const { posts, class: className = "" } = Astro.props as LatestPostsWidgetProps;
+
+// 站点级 DATE_FORMAT 是 "YYYY年M月D日 ddd"（带周几），是给归档页这类「日期即正文一部分」
+// 的场景用的。首页这张通栏列表只要「年月日」，周几是噪音，所以这里单独用一份格式，
+// 不去改站点级配置。
+const DATE_ONLY_FORMAT = "YYYY年M月D日";
 ---
 
-<WidgetCard id="home-latest" title="最新文章" icon="lucide:newspaper" href="/blog" class={className}>
-  {
-    posts.length === 0 ? (
-      <p class="text-sm text-base-content/60">还没有发布文章。</p>
-    ) : (
-      <ul class="flex flex-col gap-1">
-        {posts.map((post) => (
-          <li>
-            {/*
-              这张卡是通栏的"大卡片"，所以条目排成"左标题摘要 / 右日期分类"：
-              窄屏再退回上下堆叠，避免标题被挤成一列两个字。
-            */}
-            <a
-              href={`/blog/${post.id}`}
-              class="group flex flex-col gap-1 rounded-xl px-3 py-2.5 transition-colors duration-300 hover:bg-base-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:flex-row sm:items-center sm:gap-4"
-            >
-              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span class="line-clamp-1 text-sm font-semibold transition-colors duration-200 group-hover:text-primary">
-                  {post.title}
-                </span>
-                <span class="line-clamp-1 text-xs text-base-content/80">{post.description}</span>
-              </span>
+<section aria-labelledby="home-latest-title" class:list={["flex flex-col gap-4", className]}>
+  <div class="home-divider" aria-hidden="true"></div>
 
-              <span class="flex shrink-0 flex-wrap items-center gap-2 text-[0.7rem] text-base-content/65">
-                <time datetime={post.pubDate.toISOString()}>
-                  {dayjs(post.pubDate).format(DATE_FORMAT)}
+  <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+    <h2
+      id="home-latest-title"
+      class="flex items-center gap-2 text-sm font-semibold text-base-content/85"
+    >
+      <Icon name="lucide:newspaper" class="h-4 w-4 text-primary" aria-hidden="true" />
+      <span>最新文章</span>
+    </h2>
+
+    <a
+      href="/blog"
+      class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-base-content/70 transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+    >
+      <span>查看全部</span>
+      <Icon name="lucide:arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
+    </a>
+  </div>
+
+  <!-- 入场动画由外层区块统一负责（class 里带了 .home-enter），卡片不再重复一遍 -->
+  <WidgetCard id="home-latest" animate={false}>
+    {
+      posts.length === 0 ? (
+        <p class="text-sm text-base-content/60">还没有发布文章。</p>
+      ) : (
+        <ul class="flex flex-col gap-1">
+          {posts.map((post) => (
+            <li>
+              {/*
+                通栏卡片，所以条目排成「左标题摘要 / 右日期」：
+                窄屏退回上下堆叠，避免标题被挤成一列两个字。
+              */}
+              <a
+                href={`/blog/${post.id}`}
+                class="group flex flex-col gap-1 rounded-xl px-3 py-2.5 transition-colors duration-300 hover:bg-base-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:flex-row sm:items-center sm:gap-4"
+              >
+                <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span class="line-clamp-1 text-sm font-semibold transition-colors duration-200 group-hover:text-primary">
+                    {post.title}
+                  </span>
+                  <span class="line-clamp-1 text-xs text-base-content/80">{post.description}</span>
+                </span>
+
+                <time
+                  datetime={post.pubDate.toISOString()}
+                  class="shrink-0 text-[0.7rem] text-base-content/65"
+                >
+                  {dayjs(post.pubDate).format(DATE_ONLY_FORMAT)}
                 </time>
-                {(post.categories ?? []).slice(0, 2).map((category) => (
-                  <span class="badge badge-ghost badge-sm">{category}</span>
-                ))}
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    )
-  }
-</WidgetCard>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </WidgetCard>
+</section>

@@ -4,7 +4,7 @@ import { Icon } from "astro-icon/components";
 import WidgetCard from "./WidgetCard.astro";
 
 /**
- * 随机一言卡片。
+ * 「一言」卡片。
  *
  * 内容池来自 home.config.yaml 的 quotes.items（留空则整张卡不渲染）。
  * 服务端先渲染第一条，客户端接管后随机换一条并按间隔轮换 ——
@@ -12,6 +12,9 @@ import WidgetCard from "./WidgetCard.astro";
  *
  * 换一条用「换一条」按钮手动触发；按钮放在卡片内而不是标题栏，
  * 因为 WidgetCard 的标题栏右侧位置已经被「更多」链接占用了。
+ *
+ * 卡片会被栅格拉伸到与右侧日历齐平（index.astro 里给的是 h-full），
+ * 所以正文与作者行之间用 justify-between 分配空白，而不是堆在上方留一片空。
  */
 
 export interface RandomQuoteWidgetProps {
@@ -31,7 +34,7 @@ const {
 const first = quotes[0];
 ---
 
-<WidgetCard id="home-quote" title="随机一言" icon="lucide:quote" class={className}>
+<WidgetCard id="home-quote" title="一言" icon="lucide:quote" class={className}>
   <div class="flex flex-1 flex-col justify-between gap-3">
     <blockquote
       data-quote-text
