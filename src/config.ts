@@ -1,11 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { Config } from "@interfaces/site";
+import type { Config, HomeConfig, HomeHolidayMap } from "@interfaces/site";
 // js-yaml 5 起为纯命名导出（无 default export）
 import { load as loadYaml } from "js-yaml";
 
 // 配置文件路径
 const configPath = path.resolve("frosti.config.yaml");
+// 首页（hero）配置；这个文件是可选的，缺失时首页退回到内置的空配置
+const homeConfigPath = path.resolve("home.config.yaml");
 // 翻译文件路径
 const translationsPath = path.resolve("src/i18n/translations.yaml");
 // 读取并解析 YAML 文件
@@ -84,3 +86,79 @@ export function t(key: string): string {
   translationCache[key] = typeof result === "string" ? result : key;
   return translationCache[key];
 }
+
+// ==================== 首页（hero）配置 ====================
+
+const homeConfig = (
+  fs.existsSync(homeConfigPath)
+    ? loadYaml(fs.readFileSync(homeConfigPath, "utf8"))
+    : {}
+) as HomeConfig;
+
+/** 背景图候选列表（访客可在首页齿轮面板里切换） */
+export const HOME_BACKGROUNDS = homeConfig.background?.images ?? [];
+
+/** 默认背景 id；配置缺省或指向不存在的 id 时退回第一张 */
+export const HOME_BACKGROUND_DEFAULT =
+  HOME_BACKGROUNDS.find((item) => item.id === homeConfig.background?.default)
+    ?.id ??
+  HOME_BACKGROUNDS[0]?.id ??
+  "";
+
+/** 背景自动轮换间隔（秒），0 表示不轮换 */
+export const HOME_BACKGROUND_INTERVAL = homeConfig.background?.interval ?? 0;
+
+/** 「随机一言」的内容池 */
+export const HOME_QUOTES = homeConfig.quotes?.items ?? [];
+
+/** 「随机一言」默认轮换间隔（秒），0 表示不轮换 */
+export const HOME_QUOTE_INTERVAL = homeConfig.quotes?.interval ?? 0;
+
+function toDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** 把 "2026-01-01" 或 "2026-02-15..2026-02-23" 展开成逐日日期键 */
+function expandHolidayRange(spec: string): string[] {
+  const [startText, endText] = spec.split("..");
+  const start = new Date(`${startText.trim()}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return [];
+  if (!endText) return [toDateKey(start)];
+
+  const end = new Date(`${endText.trim()}T00:00:00`);
+  if (Number.isNaN(end.getTime())) return [toDateKey(start)];
+
+  const keys: string[] = [];
+  // 用 setDate 逐日推进而不是加 86400000：跨月/跨年与夏令时都不会算错
+  for (
+    const cursor = new Date(start);
+    cursor <= end;
+    cursor.setDate(cursor.getDate() + 1)
+  ) {
+    keys.push(toDateKey(cursor));
+  }
+  return keys;
+}
+
+/**
+ * 法定节假日与调休补班，展开成「日期 → 信息」的查表结构，供日历直接使用。
+ * 同一段假期的第一天带 first 标记（日历上只有第一天显示节假日名，其余显示「休」）。
+ */
+export const HOME_HOLIDAYS: HomeHolidayMap = (() => {
+  const map: HomeHolidayMap = {};
+  const groups = [
+    ["rest", homeConfig.holidays?.rests ?? []],
+    ["work", homeConfig.holidays?.works ?? []],
+  ] as const;
+
+  for (const [type, entries] of groups) {
+    for (const entry of entries) {
+      entry.dates.flatMap(expandHolidayRange).forEach((key, index) => {
+        map[key] = { name: entry.name, type, first: index === 0 };
+      });
+    }
+  }
+  return map;
+})();

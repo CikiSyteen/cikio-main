@@ -35,18 +35,21 @@ const { posts, class: className = "" } = Astro.props as LatestPostsWidgetProps;
         {posts.map((post) => (
           <li>
             {/*
-              条目保持上下堆叠（标题 / 摘要 / 日期与分类）：
-              小组件带里这张卡只有约 1/3 屏宽，横向的"左标题右日期"会被挤成两行。
+              这张卡是通栏的"大卡片"，所以条目排成"左标题摘要 / 右日期分类"：
+              窄屏再退回上下堆叠，避免标题被挤成一列两个字。
             */}
             <a
               href={`/blog/${post.id}`}
-              class="group flex flex-col gap-1 rounded-xl px-3 py-2.5 transition-colors duration-300 hover:bg-base-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              class="group flex flex-col gap-1 rounded-xl px-3 py-2.5 transition-colors duration-300 hover:bg-base-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:flex-row sm:items-center sm:gap-4"
             >
-              <span class="line-clamp-1 text-sm font-semibold transition-colors duration-200 group-hover:text-primary">
-                {post.title}
+              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span class="line-clamp-1 text-sm font-semibold transition-colors duration-200 group-hover:text-primary">
+                  {post.title}
+                </span>
+                <span class="line-clamp-1 text-xs text-base-content/80">{post.description}</span>
               </span>
-              <span class="line-clamp-1 text-xs text-base-content/80">{post.description}</span>
-              <span class="mt-0.5 flex flex-wrap items-center gap-2 text-[0.7rem] text-base-content/65">
+
+              <span class="flex shrink-0 flex-wrap items-center gap-2 text-[0.7rem] text-base-content/65">
                 <time datetime={post.pubDate.toISOString()}>
                   {dayjs(post.pubDate).format(DATE_FORMAT)}
                 </time>

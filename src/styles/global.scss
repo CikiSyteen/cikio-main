@@ -185,6 +185,19 @@ code {
   pointer-events: none;
 }
 
+// 两层叠放：换背景图时把新图放进隐藏层，load 完再交换透明度。
+// 直接改当前层的 src 会有"图还没到、底色先露出来"的一瞬。
+.home-backdrop-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 620ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-backdrop-layer.is-active {
+  opacity: 1;
+}
+
 .home-backdrop-image {
   width: 100%;
   height: 100%;
@@ -192,11 +205,13 @@ code {
   object-position: center;
 }
 
-// 亮色主题：极薄的一层，风景基本原样透出，只压掉一点刺眼的高光。
+// 亮色主题：很薄的一层，风景基本原样透出，只压掉一点刺眼的高光。
+// 不能压到 0：背景图是访客可选的，像雪山那种高频细节的图会把压在壁纸上的
+// hero 文案搅得难读，留 10% 的白能明显压住噪点，同时仍看得出是照片。
 .home-backdrop-veil {
   position: absolute;
   inset: 0;
-  background-color: oklch(var(--b1) / 0.06);
+  background-color: oklch(var(--b1) / 0.1);
 }
 
 // 暗色主题：换成深色并大幅加重。这是这张壁纸最关键的适配 ——
@@ -258,8 +273,10 @@ code {
   }
 }
 
-// 移动端的固定导航同样改成悬浮胶囊（原先是通栏白条）
+// 移动端的固定导航同样改成悬浮胶囊（原先是通栏白条）。
+// 四条边都留 0.5rem：只留左右会让胶囊上缘贴着视口顶端，看着像被切掉了。
 .hero-page #navbar {
+  top: 0.5rem;
   left: 0.5rem;
   right: 0.5rem;
   width: auto;
@@ -289,8 +306,8 @@ code {
   pointer-events: none;
   background-image: radial-gradient(
     closest-side,
-    oklch(var(--b1) / 0.82),
-    oklch(var(--b1) / 0.5) 55%,
+    oklch(var(--b1) / 0.88),
+    oklch(var(--b1) / 0.58) 55%,
     transparent
   );
 }
@@ -398,9 +415,14 @@ code {
   animation-delay: 300ms;
 }
 
-// 底部工具带与页脚排在所有卡片之后入场
+// 通栏的"大卡片"（文章列表）排在小卡片之后
+.home-enter-mid {
+  animation-delay: 300ms;
+}
+
+// 底部工具带与页脚排在最后
 .home-enter-late {
-  animation-delay: 320ms;
+  animation-delay: 380ms;
 }
 
 // ==================== 站内换页过渡 ====================

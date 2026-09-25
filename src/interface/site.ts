@@ -114,3 +114,57 @@ export interface Config {
   site: SiteConfig;
   user: UserConfig;
 }
+
+// ==================== 首页（hero）配置：home.config.yaml ====================
+
+export interface HomeBackgroundItem {
+  id: string;
+  name: string;
+  /** public/ 下的路径，不带扩展名（-960 / -1920 两个宽度由组件拼出来） */
+  path: string;
+}
+
+export interface HomeBackgroundConfig {
+  images: HomeBackgroundItem[];
+  default?: string;
+  /** 自动轮换间隔（秒），0 = 不轮换 */
+  interval: number;
+}
+
+export interface HomeQuoteItem {
+  text: string;
+  author?: string;
+}
+
+export interface HomeQuotesConfig {
+  items: HomeQuoteItem[];
+  /** 自动轮换间隔（秒），0 = 不轮换 */
+  interval: number;
+}
+
+export interface HomeHolidayEntry {
+  name: string;
+  /** 单个日期 "YYYY-MM-DD" 或闭区间 "YYYY-MM-DD..YYYY-MM-DD" */
+  dates: string[];
+}
+
+export interface HomeHolidaysConfig {
+  rests?: HomeHolidayEntry[];
+  works?: HomeHolidayEntry[];
+}
+
+export interface HomeConfig {
+  background?: HomeBackgroundConfig;
+  quotes?: HomeQuotesConfig;
+  holidays?: HomeHolidaysConfig;
+}
+
+/** 展开到每一天之后的节假日信息（供日历直接按日期查表） */
+export interface HomeHolidayDay {
+  name: string;
+  type: "rest" | "work";
+  /** 是否是该段假期/调休的第一天（只有第一天显示节假日名，其余显示「休」/「班」） */
+  first: boolean;
+}
+
+export type HomeHolidayMap = Record<string, HomeHolidayDay>;

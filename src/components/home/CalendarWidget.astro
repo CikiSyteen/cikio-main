@@ -1,16 +1,25 @@
 ---
+import type { HomeHolidayMap } from "@interfaces/site";
+import type { LunarTable } from "@utils/lunar";
 import { Icon } from "astro-icon/components";
 import WidgetCard from "./WidgetCard.astro";
 
 /**
- * 月视图更新日历小组件。
+ * 月视图日历。
  *
- * 服务端只渲染骨架（表头 + 空的网格占位 + 图例），网格由客户端脚本按"访客本地当前月"绘制 ——
- * 静态站点在构建期渲染日历时只会画出构建当月的日历，那是错的。
+ * 服务端只渲染骨架（表头 + 空的网格占位 + 图例 + 详情区），网格由客户端脚本按
+ * "访客本地当前月"绘制 —— 静态站点在构建期渲染日历时只会画出构建当月的日历，那是错的。
  * 网格给了固定 min-height 占位，所以客户端填充时不会产生布局位移。
  *
- * 有更新的日期会被标上圆点并可点击，点击后在下方列出当天的文章链接；
- * 数据由 index.astro 按本地日期把文章分好组传进来。
+ * 每格两行：上面是公历日，下面是农历 / 节假日状态。
+ *  - 法定节假日：第一天显示节日名，其余显示「休」（红色）
+ *  - 调休补班日：显示「班」（蓝色）
+ *  - 其余：显示农历日（初一显示月份名）
+ * 农历表与节假日表都在构建期算好、以 JSON 随页面下发，客户端只做下标查表：
+ * 浏览器对非公历 Intl 的支持不可靠（Firefox 长期缺非公历 ICU 数据），
+ * 而农历换算所需的历法数据又完全不值得为此引入一个库。
+ *
+ * 有更新的日期带圆点、可点击，点击后在下方列出当天的文章链接。
  */
 
 export interface CalendarPost {
@@ -21,20 +30,28 @@ export interface CalendarPost {
 export interface CalendarWidgetProps {
   /** 形如 { "2026-09-25": [{ title, url }] } */
   postsByDate?: Record<string, CalendarPost[]>;
+  /** 构建期生成的农历表 */
+  lunar: LunarTable;
+  /** 构建期展开的节假日 / 调休表 */
+  holidays: HomeHolidayMap;
   class?: string;
 }
 
-const { postsByDate = {}, class: className = "" } =
-  Astro.props as CalendarWidgetProps;
+const {
+  postsByDate = {},
+  lunar,
+  holidays,
+  class: className = "",
+} = Astro.props as CalendarWidgetProps;
 
 // 周一起始，与中文日历习惯一致
 const WEEKDAY_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
-const payload = JSON.stringify(postsByDate);
+const payload = JSON.stringify({ postsByDate, lunar, holidays });
 ---
 
 <WidgetCard
   id="home-calendar"
-  title="更新日历"
+  title="日历"
   icon="lucide:calendar-days"
   href="/blog/archives"
   hrefLabel="归档"
@@ -55,12 +72,16 @@ const payload = JSON.stringify(postsByDate);
       {WEEKDAY_LABELS.map((label) => <span>{label}</span>)}
     </div>
 
-    <!-- 固定高度占位（6 行），避免客户端绘制时产生布局位移 -->
-    <div data-calendar-grid class="grid min-h-[10.5rem] grid-cols-7 gap-1 text-center text-xs"></div>
+    <!-- 固定高度占位（6 行 × h-9 + 5 个 gap），避免客户端绘制时产生布局位移 -->
+    <div data-calendar-grid class="grid min-h-[14.75rem] grid-cols-7 gap-1 text-center"></div>
 
-    <p class="flex items-center justify-end gap-1.5 text-[0.7rem] text-base-content/70">
-      <span class="inline-block h-1.5 w-1.5 rounded-full bg-primary"></span>
-      <span>有更新</span>
+    <p class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[0.7rem] text-base-content/70">
+      <span class="inline-flex items-center gap-1">
+        <span class="inline-block h-1.5 w-1.5 rounded-full bg-primary"></span>
+        <span>有更新</span>
+      </span>
+      <span class="text-error">休</span>
+      <span class="text-info">班</span>
     </p>
 
     <div data-calendar-detail class="min-h-[1.25rem] text-[0.7rem] leading-relaxed"></div>
@@ -76,19 +97,46 @@ const payload = JSON.stringify(postsByDate);
     url: string;
   }
 
+  interface HolidayDay {
+    name: string;
+    type: "rest" | "work";
+    first: boolean;
+  }
+
+  interface CalendarPayload {
+    postsByDate: Record<string, CalendarPost[]>;
+    lunar: { start: string; days: string[] };
+    holidays: Record<string, HolidayDay>;
+  }
+
+  const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
   function initHomeCalendar(): void {
     const root = document.querySelector<HTMLElement>("[data-calendar]");
     if (!root) return;
 
     const payloadElement = document.querySelector<HTMLScriptElement>("[data-calendar-data]");
-    let postsByDate: Record<string, CalendarPost[]> = {};
+    let payload: CalendarPayload = {
+      postsByDate: {},
+      lunar: { start: "", days: [] },
+      holidays: {},
+    };
     try {
       if (payloadElement?.textContent) {
-        postsByDate = JSON.parse(payloadElement.textContent) as Record<string, CalendarPost[]>;
+        payload = JSON.parse(payloadElement.textContent) as CalendarPayload;
       }
     } catch {
-      postsByDate = {};
+      /* 解析失败就用空数据，日历仍然能画出公历 */
     }
+
+    const { postsByDate, lunar, holidays } = payload;
+
+    // 先把农历表的起点换算成 UTC 毫秒，之后每天只做一次减法取下标。
+    // 用 UTC 而不是本地时间做差：跨时区、夏令时都不会偏一天。
+    const [startYear, startMonth, startDay] = (lunar.start || "1970-01-01")
+      .split("-")
+      .map(Number);
+    const lunarStartUtc = Date.UTC(startYear, startMonth - 1, startDay);
 
     // 先收窄成非空常量再往下用：闭包里不会再走一遍外层的作用域收窄，
     // 直接把 HTMLElement | null 带进 render() 会报 "possibly null"。
@@ -109,6 +157,14 @@ const payload = JSON.stringify(postsByDate);
 
     function toKey(year: number, month: number, day: number): string {
       return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+
+    function lunarTextOf(year: number, month: number, day: number): string {
+      if (lunar.days.length === 0) return "";
+      const index = Math.round(
+        (Date.UTC(year, month, day) - lunarStartUtc) / MILLISECONDS_PER_DAY,
+      );
+      return lunar.days[index] ?? "";
     }
 
     function clearDetail(): void {
@@ -156,33 +212,69 @@ const payload = JSON.stringify(postsByDate);
       for (let day = 1; day <= daysInMonth; day += 1) {
         const key = toKey(viewYear, viewMonth, day);
         const posts = postsByDate[key] ?? [];
+        const holiday = holidays[key];
+        const lunarText = lunarTextOf(viewYear, viewMonth, day);
+        const weekday = new Date(viewYear, viewMonth, day).getDay();
+        const isWeekend = weekday === 0 || weekday === 6;
         const isToday = key === todayKey;
-        const todayClass = isToday ? " font-bold ring-1 ring-primary/50" : "";
 
-        if (posts.length > 0) {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = `relative flex h-6 items-center justify-center rounded-md font-semibold text-primary transition-colors duration-200 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60${todayClass}`;
-          button.textContent = String(day);
-          button.setAttribute(
-            "aria-label",
-            `${viewYear}年${viewMonth + 1}月${day}日，${posts.length} 篇更新`,
-          );
-
-          const dot = document.createElement("span");
-          dot.className = "absolute bottom-0.5 h-1 w-1 rounded-full bg-primary";
-          dot.setAttribute("aria-hidden", "true");
-          button.append(dot);
-
-          button.addEventListener("click", () => showDetail(key, posts));
-          grid.append(button);
-          continue;
+        // 第二行：优先节日 / 调休状态，其次是农历
+        let subText = lunarText;
+        let subClass = "text-base-content/65";
+        if (holiday) {
+          if (holiday.type === "rest") {
+            // 只有假期第一天显示节日名，其余显示「休」，避免整排重复三个字
+            subText = holiday.first ? holiday.name : "休";
+            subClass = "text-error";
+          } else {
+            subText = "班";
+            subClass = "text-info";
+          }
         }
 
-        const cell = document.createElement("span");
-        cell.className = `flex h-6 items-center justify-center rounded-md text-base-content/80${todayClass}`;
-        cell.textContent = String(day);
-        grid.append(cell);
+        const todayClass = isToday ? " font-bold ring-1 ring-primary/50" : "";
+        const sharedClass = `relative flex h-9 flex-col items-center justify-center rounded-md leading-none${todayClass}`;
+
+        const solar = document.createElement("span");
+        solar.className = `max-w-full text-[0.8rem] ${
+          isWeekend && holiday?.type !== "rest" ? "text-error/75" : "text-base-content/80"
+        }`;
+        solar.textContent = String(day);
+
+        const sub = document.createElement("span");
+        sub.className = `mt-0.5 max-w-full truncate text-[0.58rem] ${subClass}`;
+        sub.textContent = subText;
+
+        const host = posts.length > 0 ? document.createElement("button") : document.createElement("span");
+        host.className =
+          posts.length > 0
+            ? `${sharedClass} font-semibold text-primary transition-colors duration-200 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60`
+            : sharedClass;
+        if (host instanceof HTMLButtonElement) {
+          host.type = "button";
+        }
+
+        host.append(solar, sub);
+
+        if (posts.length > 0) {
+          const dot = document.createElement("span");
+          dot.className = "absolute right-1 top-1 h-1 w-1 rounded-full bg-primary";
+          dot.setAttribute("aria-hidden", "true");
+          host.append(dot);
+          host.addEventListener("click", () => showDetail(key, posts));
+        }
+
+        const tooltip = holiday
+          ? `${key} ${holiday.name}`
+          : lunarText
+            ? `${key} 农历${lunarText}`
+            : key;
+        host.setAttribute("title", tooltip);
+        if (posts.length > 0) {
+          host.setAttribute("aria-label", `${tooltip}，${posts.length} 篇更新`);
+        }
+
+        grid.append(host);
       }
     }
 

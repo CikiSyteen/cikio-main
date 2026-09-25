@@ -1,38 +1,206 @@
 ---
-import { Image } from "astro:assets";
-import homeLandscape from "@/assets/home-landscape.webp";
+import type { HomeBackgroundItem } from "@interfaces/site";
 
 /**
  * 首页的全屏风景壁纸层（参考 type/62296d 的沉浸式背景做法）。
  *
- * 几个关键取舍：
- *  1. 固定定位 + 负 z-index，因此位于所有内容之下。html 的 bg-base-300 画在画布
- *     （canvas）上，负 z-index 的后代依然可见，所以不必给 body 另外铺底色。
- *  2. 图走 astro:assets：构建期产出多尺寸 webp 与 srcset，避免像参考页那样直连
- *     Unsplash（无尺寸、必然 CLS、还受网络可达性影响）。
- *  3. 遮罩的透明度与颜色随主题分支（样式在 global.scss 的「首页」区块）：
- *     亮色主题下壁纸是"清透的雾"，暗色主题下要压得更实，否则白天拍的明亮风景
- *     会把暗色卡片顶得发灰、正文对比度不够。
+ * 关键取舍：
+ *  1. 固定定位 + 负 z-index，压在全部内容之下。它挂在 BaseLayout 的 body 级
+ *     `backdrop` 插槽里 —— 内容区外层的 .onload-animation 带常驻 transform，
+ *     放进去会把 fixed 的包含块劫持成内容列。
+ *  2. 图片是 public/ 下的本地文件，按 `-960` / `-1920` 两个宽度拼 srcset，
+ *     不依赖任何外链图床。
+ *  3. 两层 <img> 叠放 + 透明度交叉淡入：换图时先把新图放进隐藏层，
+ *     等它 load 完再交换透明度，否则改 src 的那一刻会闪一下页面底色。
+ *  4. 遮罩按主题分支（样式在 global.scss）：亮色只加一层极薄薄纱，暗色大幅压暗。
+ *  5. 选中的图与轮换间隔来自访客的 localStorage 设置（齿轮面板写入），
+ *     没有设置时退回 home.config.yaml 里的默认值。
  */
+
+export interface HomeBackdropProps {
+  backgrounds: HomeBackgroundItem[];
+  defaultId: string;
+  interval: number;
+}
+
+const { backgrounds, defaultId, interval } = Astro.props as HomeBackdropProps;
+
+const active =
+  backgrounds.find((item) => item.id === defaultId) ?? backgrounds[0];
+const srcsetOf = (path: string) =>
+  `${path}-960.webp 960w, ${path}-1920.webp 1920w`;
 ---
 
 <div class="home-backdrop" aria-hidden="true">
-  <Image
-    src={homeLandscape}
-    alt=""
-    widths={[640, 1024, 1600, 2048]}
-    sizes="100vw"
-    format="webp"
-    quality={72}
-    loading="eager"
-    decoding="async"
-    class="home-backdrop-image"
-  />
+  <div class="home-backdrop-layer is-active" data-bg-layer="a">
+    {
+      active && (
+        <img
+          src={`${active.path}-1920.webp`}
+          srcset={srcsetOf(active.path)}
+          sizes="100vw"
+          alt=""
+          width="1920"
+          height="1280"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+          class="home-backdrop-image"
+          data-bg-image
+          data-bg-id={active.id}
+        />
+      )
+    }
+  </div>
+
+  <div class="home-backdrop-layer" data-bg-layer="b">
+    <img
+      alt=""
+      width="1920"
+      height="1280"
+      loading="eager"
+      decoding="async"
+      class="home-backdrop-image"
+      data-bg-image
+    />
+  </div>
 
   <!--
-    只有一层整体薄纱，没有任何"收边"渐变：
-    顶部导航是浮在壁纸上的半透明胶囊、页脚也是，因此画面可以真正铺满整屏，
-    不需要在上下两端让位给通栏元素。文字的可读性由卡片与 hero 的柔光承担。
+    只有一层整体薄纱，没有"收边"渐变：
+    顶部导航是浮在壁纸上的半透明胶囊、页脚也是，画面可以真正铺满整屏。
+    遮罩的透明度与颜色按 data-theme-type 分支，见 global.scss 的「首页」区块。
   -->
   <div class="home-backdrop-veil"></div>
 </div>
+
+<script
+  type="application/json"
+  data-home-bg-data
+  is:inline
+  set:html={JSON.stringify({ backgrounds, defaultId, interval })}
+></script>
+
+<script>
+  const SETTINGS_KEY = "cikio-home-settings";
+
+  // 当前正在显示的是哪一层；模块级变量在同一次会话内跨站内换页保留
+  let activeLayer: "a" | "b" = "a";
+  let rotationTimer: number | undefined;
+
+  function readSettings(): { bg?: string; bgInterval?: number } {
+    try {
+      return JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function readPayload(): { backgrounds: { id: string; path: string }[]; defaultId: string; interval: number } | null {
+    const element = document.querySelector<HTMLScriptElement>("[data-home-bg-data]");
+    if (!element?.textContent) return null;
+    try {
+      return JSON.parse(element.textContent);
+    } catch {
+      return null;
+    }
+  }
+
+  function layerOf(name: "a" | "b"): HTMLElement | null {
+    return document.querySelector<HTMLElement>(`[data-bg-layer="${name}"]`);
+  }
+
+  function imageOf(name: "a" | "b"): HTMLImageElement | null {
+    return layerOf(name)?.querySelector("img") ?? null;
+  }
+
+  function applySource(img: HTMLImageElement, path: string, id: string): void {
+    img.dataset.bgId = id;
+    img.srcset = `${path}-960.webp 960w, ${path}-1920.webp 1920w`;
+    img.src = `${path}-1920.webp`;
+  }
+
+  function wantedId(payload: { backgrounds: { id: string }[]; defaultId: string }): string {
+    const settings = readSettings();
+    return payload.backgrounds.some((item) => item.id === settings.bg)
+      ? (settings.bg as string)
+      : payload.defaultId;
+  }
+
+  function intervalOf(payload: { interval: number }): number {
+    const settings = readSettings();
+    const value = Number.isFinite(settings.bgInterval) ? settings.bgInterval : payload.interval;
+    return Number(value) || 0;
+  }
+
+  /** 无过场切换：只在首次渲染时用（整页本来就在 300ms 淡入里，看不出来） */
+  function showImmediately(payload: { backgrounds: { id: string; path: string }[] }, id: string): void {
+    const item = payload.backgrounds.find((entry) => entry.id === id);
+    if (!item) return;
+
+    activeLayer = "a";
+    layerOf("b")?.classList.remove("is-active");
+    const layerA = layerOf("a");
+    layerA?.classList.add("is-active");
+
+    const img = imageOf("a");
+    if (!img || img.dataset.bgId === id) return;
+    applySource(img, item.path, id);
+  }
+
+  /** 带过场的切换：齿轮面板改图、以及自动轮换走这里 */
+  function switchWithFade(payload: { backgrounds: { id: string; path: string }[] }, id: string): void {
+    const item = payload.backgrounds.find((entry) => entry.id === id);
+    if (!item) return;
+    if (imageOf(activeLayer)?.dataset.bgId === id) return;
+
+    const nextName: "a" | "b" = activeLayer === "a" ? "b" : "a";
+    const nextLayer = layerOf(nextName);
+    const nextImage = imageOf(nextName);
+    if (!nextLayer || !nextImage) return;
+
+    applySource(nextImage, item.path, id);
+
+    const swap = () => {
+      nextLayer.classList.add("is-active");
+      layerOf(activeLayer)?.classList.remove("is-active");
+      activeLayer = nextName;
+    };
+
+    // 新图已经解码完（换回看过的图）就直接切，否则等 load，避免闪一下底色
+    if (nextImage.complete && nextImage.naturalWidth > 0) {
+      swap();
+    } else {
+      nextImage.addEventListener("load", swap, { once: true });
+    }
+  }
+
+  function startRotation(
+    payload: { backgrounds: { id: string; path: string }[] },
+    seconds: number,
+  ): void {
+    window.clearInterval(rotationTimer);
+    if (seconds <= 0 || payload.backgrounds.length < 2) return;
+    rotationTimer = window.setInterval(() => {
+      const current = imageOf(activeLayer)?.dataset.bgId ?? "";
+      const index = payload.backgrounds.findIndex((entry) => entry.id === current);
+      const next = payload.backgrounds[(index + 1) % payload.backgrounds.length];
+      switchWithFade(payload, next.id);
+    }, seconds * 1000);
+  }
+
+  function initBackdrop(): void {
+    const payload = readPayload();
+    if (!payload || payload.backgrounds.length === 0) return;
+    showImmediately(payload, wantedId(payload));
+    startRotation(payload, intervalOf(payload));
+  }
+
+  // 站内换页后 DOM 被换掉，需要在 page-load 重新绑定；齿轮改了设置则即时响应
+  document.addEventListener("astro:page-load", initBackdrop);
+  window.addEventListener("cikio:home-settings", () => {
+    const payload = readPayload();
+    if (!payload) return;
+    switchWithFade(payload, wantedId(payload));
+    startRotation(payload, intervalOf(payload));
+  });
+</script>

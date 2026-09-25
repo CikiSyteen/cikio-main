@@ -1,0 +1,245 @@
+---
+import type { HomeBackgroundItem } from "@interfaces/site";
+import { Icon } from "astro-icon/components";
+
+/**
+ * 首页右上角的齿轮设置面板。
+ *
+ * 只出现在首页（hero 版式），站内其它页面不渲染。
+ * 能改三件事：背景图、一言轮换间隔、背景轮换间隔。
+ *
+ * 全部存在 localStorage 的 `cikio-home-settings` 里，不改服务端任何东西 ——
+ * 也就是说每个访客看到的是自己选的画面。改完通过 `cikio:home-settings`
+ * 自定义事件通知壁纸层与一言卡片即时生效（它们之间不共享模块作用域，
+ * 组件各自的 <script> 被打包成独立文件，只能靠 window 上的事件通信）。
+ *
+ * 候选值与默认值来自 home.config.yaml，所以"默认长什么样"是站点拥有者说了算。
+ */
+
+export interface HomeSettingsProps {
+  backgrounds: HomeBackgroundItem[];
+  defaultBackground: string;
+  backgroundInterval: number;
+  quoteInterval: number;
+}
+
+const { backgrounds, defaultBackground, backgroundInterval, quoteInterval } =
+  Astro.props;
+
+// 轮换间隔可选项（秒）
+const INTERVAL_OPTIONS = [0, 10, 30, 60, 300, 1800];
+
+const intervalLabel = (seconds: number): string => {
+  if (seconds <= 0) return "不轮换";
+  if (seconds < 60) return `${seconds} 秒`;
+  if (seconds < 3600) return `${seconds / 60} 分钟`;
+  return `${seconds / 3600} 小时`;
+};
+
+const defaults = {
+  bg: defaultBackground,
+  quoteInterval,
+  bgInterval: backgroundInterval,
+};
+---
+
+<!--
+  固定在视口右上角；移动端下移到导航胶囊下方（胶囊占满宽度，会盖住 top-4 的位置）。
+  只在首页渲染，所以不需要额外的作用域判断。
+-->
+<div class="fixed right-3 top-[5.25rem] z-40 md:right-5 md:top-5" data-home-settings>
+  <div class="dropdown dropdown-end">
+    <div
+      tabindex="0"
+      role="button"
+      class="home-tile btn btn-circle h-11 w-11 min-h-0 border-0"
+      aria-label="首页设置"
+    >
+      <Icon name="lucide:settings" class="h-5 w-5 text-base-content/80" aria-hidden="true" />
+    </div>
+
+    <div
+      tabindex="0"
+      class="dropdown-content z-50 mt-3 w-[19rem] rounded-2xl border border-base-300/50 bg-base-100/95 p-4 shadow-2xl backdrop-blur"
+    >
+      <h2 class="mb-3 flex items-center gap-2 text-sm font-bold">
+        <Icon name="lucide:sliders-horizontal" class="h-4 w-4 text-primary" aria-hidden="true" />
+        <span>首页设置</span>
+      </h2>
+
+      {
+        backgrounds.length > 0 && (
+          <fieldset class="mb-4">
+            <legend class="mb-2 text-xs text-base-content/70">背景图片</legend>
+            <div class="grid grid-cols-3 gap-2">
+              {backgrounds.map((item) => (
+                <label class="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="home-background"
+                    value={item.id}
+                    class="peer sr-only"
+                    data-home-bg-option
+                  />
+                  <img
+                    src={`${item.path}-960.webp`}
+                    alt={item.name}
+                    width="960"
+                    height="640"
+                    loading="lazy"
+                    class="h-12 w-full rounded-lg object-cover ring-2 ring-transparent transition peer-checked:ring-primary peer-focus-visible:ring-primary"
+                  />
+                  <span class="mt-1 block truncate text-center text-[0.65rem] text-base-content/70 peer-checked:text-primary">
+                    {item.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )
+      }
+
+      <div class="flex flex-col gap-2">
+        <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
+          <span>一言轮换</span>
+          <select class="select select-bordered select-sm" data-home-quote-interval>
+            {
+              INTERVAL_OPTIONS.map((seconds) => (
+                <option value={String(seconds)}>{intervalLabel(seconds)}</option>
+              ))
+            }
+          </select>
+        </label>
+
+        <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
+          <span>背景轮换</span>
+          <select class="select select-bordered select-sm" data-home-bg-interval>
+            {
+              INTERVAL_OPTIONS.map((seconds) => (
+                <option value={String(seconds)}>{intervalLabel(seconds)}</option>
+              ))
+            }
+          </select>
+        </label>
+      </div>
+
+      <button type="button" class="btn btn-ghost btn-xs mt-3 w-full" data-home-settings-reset>
+        恢复默认
+      </button>
+    </div>
+  </div>
+</div>
+
+<script
+  type="application/json"
+  data-home-settings-defaults
+  is:inline
+  set:html={JSON.stringify(defaults)}
+></script>
+
+<script>
+  const SETTINGS_KEY = "cikio-home-settings";
+
+  interface HomeSettings {
+    bg?: string;
+    quoteInterval?: number;
+    bgInterval?: number;
+  }
+
+  function readSettings(): HomeSettings {
+    try {
+      return JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function writeSettings(next: HomeSettings): void {
+    try {
+      window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+    } catch {
+      // 隐私模式下 localStorage 不可写，忽略即可（本次会话仍会通过事件生效）
+    }
+  }
+
+  function readDefaults(): HomeSettings | null {
+    const element = document.querySelector<HTMLScriptElement>("[data-home-settings-defaults]");
+    if (!element?.textContent) return null;
+    try {
+      return JSON.parse(element.textContent);
+    } catch {
+      return null;
+    }
+  }
+
+  /** 通知壁纸层与一言卡片按新设置重新渲染 */
+  function broadcast(): void {
+    window.dispatchEvent(new CustomEvent("cikio:home-settings"));
+  }
+
+  function syncPanel(defaults: HomeSettings, settings: HomeSettings): void {
+    const background = settings.bg ?? defaults.bg ?? "";
+    document.querySelectorAll<HTMLInputElement>("[data-home-bg-option]").forEach((input) => {
+      input.checked = input.value === background;
+    });
+
+    const quoteSelect = document.querySelector<HTMLSelectElement>("[data-home-quote-interval]");
+    if (quoteSelect) {
+      quoteSelect.value = String(settings.quoteInterval ?? defaults.quoteInterval ?? 0);
+    }
+
+    const bgSelect = document.querySelector<HTMLSelectElement>("[data-home-bg-interval]");
+    if (bgSelect) {
+      bgSelect.value = String(settings.bgInterval ?? defaults.bgInterval ?? 0);
+    }
+  }
+
+  function initSettings(): void {
+    const root = document.querySelector<HTMLElement>("[data-home-settings]");
+    const defaults = readDefaults();
+    if (!root || !defaults) return;
+
+    syncPanel(defaults, readSettings());
+
+    // 用 on* 赋值而不是 addEventListener：astro:page-load 每次换页都会跑一遍，
+    // 赋值天然幂等，不会把同一个处理器叠好几层。
+    root.querySelectorAll<HTMLInputElement>("[data-home-bg-option]").forEach((input) => {
+      input.onchange = () => {
+        if (!input.checked) return;
+        writeSettings({ ...readSettings(), bg: input.value });
+        broadcast();
+      };
+    });
+
+    const quoteSelect = root.querySelector<HTMLSelectElement>("[data-home-quote-interval]");
+    if (quoteSelect) {
+      quoteSelect.onchange = () => {
+        writeSettings({ ...readSettings(), quoteInterval: Number(quoteSelect.value) });
+        broadcast();
+      };
+    }
+
+    const bgSelect = root.querySelector<HTMLSelectElement>("[data-home-bg-interval]");
+    if (bgSelect) {
+      bgSelect.onchange = () => {
+        writeSettings({ ...readSettings(), bgInterval: Number(bgSelect.value) });
+        broadcast();
+      };
+    }
+
+    const resetButton = root.querySelector<HTMLButtonElement>("[data-home-settings-reset]");
+    if (resetButton) {
+      resetButton.onclick = () => {
+        try {
+          window.localStorage.removeItem(SETTINGS_KEY);
+        } catch {
+          /* 忽略 */
+        }
+        syncPanel(defaults, {});
+        broadcast();
+      };
+    }
+  }
+
+  document.addEventListener("astro:page-load", initSettings);
+</script>

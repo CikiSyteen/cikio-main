@@ -145,13 +145,14 @@ const jsonLd =
     {...isIndexed ? { "data-pagefind-body": true } : {}}
   >
     <!--
-      全屏背景层（首页风景壁纸）挂在这里、而不是放进内容区：
-      它用 position: fixed，而 fixed 的包含块会被**任何带 transform 的祖先**接管。
-      内容区外层的 .onload-animation 恰好靠 transform 做入场动画且 fill-mode 为 forwards，
-      留在里面的话背景会被压缩到内容列范围内（首页实测就是被压到导航下方的那个方框里）。
+      页面级固定层（全屏背景壁纸、右上角悬浮控件）挂在这里、而不是放进内容区：
+      它们用 position: fixed，而 fixed 的包含块会被**任何带 transform 的祖先**接管。
+      内容区外层的 .onload-animation 恰好靠 transform 做入场动画且 fill-mode 为 forwards、
+      那个 transform 会一直保留，留在里面的话 fixed 元素会被压缩到内容列范围内
+      （首页实测：壁纸被压成导航下方的一个方框、齿轮跑到了内容区右上角）。
       放在 body 下才是真正的视口级固定层。
     -->
-    <slot name="backdrop" />
+    <slot name="overlay" />
 
     <a
       href="#main-content"
@@ -183,8 +184,9 @@ const jsonLd =
           tabindex="-1"
           class:list={[
             "col-span-1 min-w-0 bg-transparent order-1 lg:order-2 flex flex-col gap-4",
-            // hero 页面顶部是浮在壁纸上的胶囊导航，不需要给固定导航留出 4rem 的空白
-            hero ? "mt-20 md:mt-24" : "mt-16 md:mt-0",
+            // hero 页面顶部是浮在壁纸上的胶囊导航：桌面端导航本身在文档流里占 5rem，
+            // 再留 mt-24 会把首屏推得偏低，这里统一收到 5rem。
+            hero ? "mt-20" : "mt-16 md:mt-0",
           ]}
         >
           <div class="onload-animation flex-grow flex flex-col gap-4">
