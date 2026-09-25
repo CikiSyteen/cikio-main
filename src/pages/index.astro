@@ -118,23 +118,27 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
       </div>
 
       <!--
-        右栏：小卡片群，2×2 的 bento —— 左侧一列是日期时间与一言，右侧是日历。
-        日历带农历与调休、纵向最高，所以给它 sm:row-span-2 跨两行。
+        右栏：小卡片群 —— 左列「一言」在上、「日期与时间」在下，右列日历跨两行。
 
-        这里刻意不写 items-start，用栅格默认的 align-items: stretch：
-        左列两张卡会被拉伸填满各自那一行，于是卡与卡的上下间距恒等于 gap，
-        且「一言」的下边缘与日历的下边缘齐平，不会在卡下面留半截空白。
-        注意拉伸的是栅格项（外面那层 .home-enter 外壳），里面的卡片要自己
-        加 h-full 才吃得到这个高度。
+        尺寸是固定的，不再随邻居自适应：栅格默认的 align-items: stretch 只会把外层
+        .home-enter 外壳撑到行高，卡片按自己的固定高度贴在行首，于是无论一言轮到
+        几句、天气有没有取到数据，两块卡的尺寸都不动。
+        两个固定高度加上 sm:gap-5（1.25rem）之和，刻意对齐日历在 lg 下的实测高度
+        （10.5 + 1.25 + 16 = 27.75rem = 444px），所以左列底边仍与日历底边齐平。
+        日历若因某月更新条目变多而长高，这里会差出几十像素，届时按比例调这两个值即可。
 
         每个小组件都套一层 .home-enter 外壳 —— 错峰动画靠 nth-child 定位，
         而组件自己会往同级输出 <script>（Astro 把内联的模块脚本留在原位置），
         不套壳的话格子的直接子元素就不再是"三张卡"，序号会被脚本元素打乱。
-        窄屏退回单列时按 DOM 顺序堆叠：时钟 → 日历 → 一言。
+        窄屏退回单列时按 DOM 顺序堆叠：一言 → 日历 → 时钟。
       -->
       <div class="home-stagger grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:flex-[1.15]">
         <div class="home-enter sm:col-start-1 sm:row-start-1">
-          <ClockWeatherWidget class="h-full" />
+          <RandomQuoteWidget
+            quotes={HOME_QUOTES}
+            interval={HOME_QUOTE_INTERVAL}
+            class="sm:h-[10.5rem]"
+          />
         </div>
         <div class="home-enter sm:col-start-2 sm:row-span-2 sm:row-start-1">
           <CalendarWidget
@@ -143,17 +147,9 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
             holidays={HOME_HOLIDAYS}
           />
         </div>
-        {
-          HOME_QUOTES.length > 0 && (
-            <div class="home-enter sm:col-start-1 sm:row-start-2">
-              <RandomQuoteWidget
-                quotes={HOME_QUOTES}
-                interval={HOME_QUOTE_INTERVAL}
-                class="h-full"
-              />
-            </div>
-          )
-        }
+        <div class="home-enter sm:col-start-1 sm:row-start-2">
+          <ClockWeatherWidget class="sm:h-[16rem]" />
+        </div>
       </div>
     </div>
 

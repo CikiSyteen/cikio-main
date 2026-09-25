@@ -37,26 +37,21 @@ const DATE_ONLY_FORMAT = "YYYY年M月D日";
 <section aria-labelledby="home-latest-title" class:list={["flex flex-col gap-4", className]}>
   <div class="home-divider" aria-hidden="true"></div>
 
-  <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-    <h2
-      id="home-latest-title"
-      class="flex items-center gap-2 text-sm font-semibold text-base-content/85"
-    >
-      <Icon name="lucide:newspaper" class="h-4 w-4 text-primary" aria-hidden="true" />
-      <span>最新文章</span>
-    </h2>
+  <h2
+    id="home-latest-title"
+    class="flex items-center justify-center gap-2 text-sm font-semibold text-base-content/85"
+  >
+    <Icon name="lucide:newspaper" class="h-4 w-4 text-primary" aria-hidden="true" />
+    <span>最新文章</span>
+  </h2>
 
-    <a
-      href="/blog"
-      class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-base-content/70 transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-    >
-      <span>查看全部</span>
-      <Icon name="lucide:arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
-    </a>
-  </div>
-
-  <!-- 入场动画由外层区块统一负责（class 里带了 .home-enter），卡片不再重复一遍 -->
-  <WidgetCard id="home-latest" animate={false}>
+  <!--
+    入场动画由外层区块统一负责（class 里带了 .home-enter），卡片不再重复一遍。
+    「查看全部」交给 WidgetCard 的 href：它会把入口摆在卡片自己的右上角，
+    与下方「站点导航」那种"标题在分隔线上、动线在瓦片上"的分工不同 —— 文章列表是
+    一整张卡，入口贴着卡的右上角才符合"这是这张卡的动作"。
+  -->
+  <WidgetCard id="home-latest" href="/blog" animate={false}>
     {
       posts.length === 0 ? (
         <p class="text-sm text-base-content/60">还没有发布文章。</p>

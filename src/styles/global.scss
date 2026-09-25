@@ -254,8 +254,10 @@ code {
   background-color: oklch(var(--b1) / 0.82);
 }
 
-// 胶囊要紧凑，把菜单项与搜索框的内边距收紧（通栏版式的 px-5 / w-56 在胶囊里太撑）
-.hero-page .desktop-navbar-bar > a:first-child {
+// 胶囊要紧凑，把菜单项与搜索框的内边距收紧（通栏版式的 px-5 / w-56 在胶囊里太撑）。
+// 站名已从 <a> 改成不可交互的 <div>（见 DesktopNavbar），所以这里用 :first-child
+// 而不是 a:first-child —— 否则首页胶囊里的站名会退回通栏版式的 px-5，整条胶囊被撑宽。
+.hero-page .desktop-navbar-bar > :first-child {
   padding-inline: 0.75rem;
 }
 
@@ -290,26 +292,6 @@ code {
 
 [data-theme-type="dark"] .hero-page #navbar {
   background-color: oklch(var(--b1) / 0.85);
-}
-
-// hero 文案脚下的柔光：一块居中的径向渐变，不是卡片也不是通栏遮罩。
-// 它让"直接压在照片上"的标题与简介在亮色（洗白）和暗色（压暗）下都够对比度，
-// 同时保留壁纸的完整可见性。
-.home-hero-glow {
-  position: absolute;
-  z-index: -1;
-  top: -3rem;
-  bottom: -3rem;
-  left: 50%;
-  width: min(48rem, 130%);
-  transform: translateX(-50%);
-  pointer-events: none;
-  background-image: radial-gradient(
-    closest-side,
-    oklch(var(--b1) / 0.88),
-    oklch(var(--b1) / 0.58) 55%,
-    transparent
-  );
 }
 
 // hero 的次级按钮：浮在照片上时不能用 btn-ghost（完全透明会认不出是按钮）
@@ -360,6 +342,14 @@ code {
   border-color: oklch(var(--p) / 0.45);
   background-color: oklch(var(--b1) / 0.95);
   box-shadow: 0 12px 28px rgb(0 0 0 / 0.16);
+}
+
+// 右上角的设置按钮：悬停只放大、不上移。
+// 它贴在视口右上角，上移看着像要飘出屏幕；放大在原地"顶起来"，更像个可按的旋钮。
+// 必须放在 .home-tile:hover 之后：两者都是"类 + 伪类"（0,2,0）同优先级，靠先后顺序覆盖 transform。
+// 其余状态（描边转主色、底色变实、投影加深）仍沿用 .home-tile:hover，手感与全站瓦片保持一致。
+.home-settings-toggle:hover {
+  transform: scale(1.08);
 }
 
 // 工具带上缘那条渐隐分隔线（62296d 的 .toolbelt-line，去掉霓虹发光）

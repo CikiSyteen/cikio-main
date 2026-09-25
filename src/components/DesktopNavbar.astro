@@ -59,17 +59,22 @@ const isActive = (href: string) =>
     <div
       class="desktop-navbar-bar bg-base-100 shadow-lg rounded-b-xl h-[4.5rem] flex items-center justify-between px-4"
     >
-      <!-- 站名 -->
-      <a
-        href="/"
-        class="btn btn-ghost h-[3.25rem] px-5 text-xl font-bold hover:scale-105 transition-transform"
-        aria-label={SITE_TITLE}
-      >
+      <!--
+        站名：纯展示，不可点击、也没有 hover 交互。
+        它原来是回首页的链接 + hover:scale-105，但菜单里已经有「首页」，
+        回首页的入口不缺这一个；顶栏最左侧留一块会放大的可点区域，反而让人以为
+        那是当前页标记而不是按钮。
+
+        用 div 而不是"去掉 href 的 a"或 span：后者仍会进 tab 序列 / 被读屏当成可交互元素，
+        div 天然不可聚焦、无 role。布局用手写 flex 顶替原来的 .btn（尺寸与内边距逐项对齐），
+        这样去掉 .btn 后不会连带丢掉它的 hover 底色与 cursor:pointer。
+      -->
+      <div class="flex h-[3.25rem] items-center px-5 text-xl font-bold">
         <span class="flex flex-row items-center text-primary">
-          <Icon name="lucide:house" class="text-[1.75rem] mb-1 mr-2" />
-          {SITE_TITLE}
+          <Icon name="lucide:house" class="mb-1 mr-2 text-[1.75rem]" aria-hidden="true" />
+          <span>{SITE_TITLE}</span>
         </span>
-      </a>
+      </div>
 
       <!-- 菜单 -->
       <nav class="flex items-center gap-1" aria-label={SITE_TITLE}>

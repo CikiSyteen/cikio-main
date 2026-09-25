@@ -13,8 +13,9 @@ export interface WidgetCardProps {
   /** 卡片锚点与 aria-labelledby 用的唯一 id（不带前缀） */
   id: string;
   /**
-   * 卡片标题。留空则整条标题栏不渲染 —— 用于标题已经由外层区块提供的场景
-   * （如「最新文章」把标题做成了与「站点导航」同款的「渐隐分隔线 + 小标题」）。
+   * 卡片标题。留空时标题栏仍会渲染（若同时给了 href），只是左侧没有标题 ——
+   * 用于标题已经由外层区块提供的场景：如「最新文章」把标题做成了与「站点导航」
+   * 同款的「渐隐分隔线 + 小标题」，而「查看全部」仍旧留在卡片自己的右上角。
    */
   title?: string;
   /** 标题左侧图标（iconify 名，如 lucide:clock） */
@@ -56,17 +57,19 @@ const headingId = `${id}-title`;
   ]}
 >
   {
-    title && (
+    (title || href) && (
       <header class="flex items-center justify-between gap-3">
-        <h2 id={headingId} class="flex items-center gap-2 text-base font-bold">
-          {icon && <Icon name={icon} class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />}
-          <span>{title}</span>
-        </h2>
+        {title && (
+          <h2 id={headingId} class="flex items-center gap-2 text-base font-bold">
+            {icon && <Icon name={icon} class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />}
+            <span>{title}</span>
+          </h2>
+        )}
 
         {href && (
           <a
             href={href}
-            class="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-base-content/70 transition-colors duration-200 hover:bg-base-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-base-content/70 transition-colors duration-200 hover:bg-base-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <span>{hrefLabel}</span>
             <Icon name="lucide:arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />

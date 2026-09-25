@@ -42,9 +42,8 @@ const typedMenu = SITE_MENU as MenuItem[];
   </div>
 
   <div class="navbar-center">
-    <a class="btn btn-ghost text-xl hover:scale-105 transition-transform duration-300" href="/">
-      {SITE_TITLE}
-    </a>
+    <!-- 与桌面顶栏（DesktopNavbar）保持一致：站名只作展示，不可点击、无 hover 交互 -->
+    <div class="px-4 text-xl font-bold">{SITE_TITLE}</div>
   </div>
 
   <div class="navbar-end">
