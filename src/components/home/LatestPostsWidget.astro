@@ -1,0 +1,66 @@
+---
+import { DATE_FORMAT } from "@config";
+import dayjs from "@utils/dayjs";
+import WidgetCard from "./WidgetCard.astro";
+
+/**
+ * 最新文章小组件。
+ *
+ * 内容在构建期渲染（静态 HTML），因此对 SEO 友好、零客户端 JS；
+ * 数据由 index.astro 查好传进来，组件本身不碰内容集合，方便复用与测试。
+ */
+
+export interface LatestPostItem {
+  id: string;
+  title: string;
+  description: string;
+  pubDate: Date;
+  categories?: string[];
+}
+
+export interface LatestPostsWidgetProps {
+  posts: LatestPostItem[];
+  class?: string;
+}
+
+const { posts, class: className = "" } = Astro.props as LatestPostsWidgetProps;
+---
+
+<WidgetCard id="home-latest" title="最新文章" icon="lucide:newspaper" href="/blog" class={className}>
+  {
+    posts.length === 0 ? (
+      <p class="text-sm text-base-content/60">还没有发布文章。</p>
+    ) : (
+      <ul class="flex flex-col gap-1">
+        {posts.map((post) => (
+          <li>
+            {/*
+              卡片是满行宽，所以条目改成"左标题右日期"的横向排布：
+              窄屏仍退回上下堆叠，避免标题被挤成一列两个字。
+            */}
+            <a
+              href={`/blog/${post.id}`}
+              class="group flex flex-col gap-1 rounded-xl px-3 py-2.5 transition-colors duration-300 hover:bg-base-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:flex-row sm:items-center sm:gap-4"
+            >
+              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span class="line-clamp-1 text-sm font-semibold transition-colors duration-200 group-hover:text-primary">
+                  {post.title}
+                </span>
+                <span class="line-clamp-1 text-xs text-base-content/70">{post.description}</span>
+              </span>
+
+              <span class="flex shrink-0 flex-wrap items-center gap-2 text-[0.7rem] text-base-content/50">
+                <time datetime={post.pubDate.toISOString()}>
+                  {dayjs(post.pubDate).format(DATE_FORMAT)}
+                </time>
+                {(post.categories ?? []).slice(0, 2).map((category) => (
+                  <span class="badge badge-ghost badge-sm">{category}</span>
+                ))}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</WidgetCard>

@@ -22,6 +22,17 @@ export interface SocialIcon {
   svg: string;
 }
 
+/** 首页天气小组件的配置（可选，对应 frosti.config.yaml 的 user.weather） */
+export interface WeatherConfig {
+  /** 是否在首页显示天气行；设为 false 时首页只显示日期与时间 */
+  enabled: boolean;
+  /** 界面上的城市名，仅作文案，不参与请求 */
+  city: string;
+  /** 查询用的纬度 / 经度（Open-Meteo） */
+  latitude: number;
+  longitude: number;
+}
+
 export interface BlogConfig {
   pageSize: number;
 }
@@ -46,6 +57,10 @@ export interface UserConfig {
   name: string;
   site: string;
   avatar: string;
+  /** 个人简介，留空时侧栏与首页都不渲染该行 */
+  bio?: string;
+  /** 首页天气小组件，未配置时首页只显示日期与时间 */
+  weather?: WeatherConfig;
   sidebar: {
     social: SocialIcon[];
   };

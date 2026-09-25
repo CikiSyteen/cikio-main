@@ -28,6 +28,8 @@ const {
   isIndexed = true,
   ogType = "website",
   pubDate,
+  // 首页等需要「全宽单列」的页面可隐藏侧栏；默认 false，保持既有的侧栏 + 内容双列布局
+  hideSidebar = false,
 } = Astro.props;
 
 const pageUrl = new URL(Astro.url.pathname, Astro.site).toString();
@@ -152,7 +154,12 @@ const jsonLd =
     -->
     <!-- 顶部栏在文档流内、占据栅格上方的空间，因此无需任何偏移补偿 -->
     <div class="max-w-[75rem] mx-auto w-full flex-grow">
-      <div class="grid grid-cols-1 lg:grid-cols-[17.5rem_minmax(0,1fr)] gap-4 p-4 h-full items-start">
+      <div
+        class:list={[
+          "grid grid-cols-1 gap-4 p-4 h-full items-start",
+          !hideSidebar && "lg:grid-cols-[17.5rem_minmax(0,1fr)]",
+        ]}
+      >
         <main
           id="main-content"
           tabindex="-1"
@@ -167,13 +174,16 @@ const jsonLd =
           侧栏列在 lg 下用 self-stretch 撑到与内容列同高：
           目录卡片的吸附（sticky）只能在「包含块内」移动，包含块高度不足时吸附等于失效。
           撑满后目录才有足够的行程从页面下方一路跟到文章结束。
+          hideSidebar 为 true 时整列不渲染（首页用它换出一整行来铺小组件网格）。
         -->
-        <aside
-          class="col-span-1 w-full lg:w-[17.5rem] lg:max-w-[17.5rem] lg:self-stretch bg-transparent order-2 lg:order-1"
-        >
-          <Sidebar headings={headings} showTOC={showTOC} />
-          <slot name="sidebar" />
-        </aside>
+        {
+          !hideSidebar && (
+            <aside class="col-span-1 w-full lg:w-[17.5rem] lg:max-w-[17.5rem] lg:self-stretch bg-transparent order-2 lg:order-1">
+              <Sidebar headings={headings} showTOC={showTOC} />
+              <slot name="sidebar" />
+            </aside>
+          )
+        }
       </div>
     </div>
 

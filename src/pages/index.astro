@@ -1,171 +1,61 @@
 ---
-import { Code } from "astro-expressive-code/components";
-import { Icon } from "astro-icon/components";
-import MainCard from "@/components/MainCard.astro";
-import FeatureCard from "@/components/mdx/FeatureCard.astro";
-import GitHubStats from "@/components/mdx/GitHubStats.astro";
+import { getAllPosts, sortPostsByDate } from "@utils/blogUtils";
+import CalendarWidget from "@/components/home/CalendarWidget.astro";
+import ClockWeatherWidget from "@/components/home/ClockWeatherWidget.astro";
+import HomeBackdrop from "@/components/home/HomeBackdrop.astro";
+import HomeHero from "@/components/home/HomeHero.astro";
+import LatestPostsWidget from "@/components/home/LatestPostsWidget.astro";
+import SiteNavWidget from "@/components/home/SiteNavWidget.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+
+/**
+ * 首页 = 风景壁纸 + 小组件面板。
+ *
+ * 设计上与站内其余页面共用 BaseLayout，只多传一个 hideSidebar：
+ * 首页需要一整行来铺小组件网格，而侧栏里的 Profile / 分类 / 标签 / 目录
+ * 会和这里的「站点导航」「最新文章」重复，所以首页收起侧栏。
+ * 顶部导航、页脚、亮暗主题、链接预取、视图过渡全部照旧继承，
+ * 因此从首页点进 /blog 时只有内容区参与过渡，不会整页重建。
+ *
+ * 栅格（lg 三列）：Hero 满行 → 最新文章满行 → 日期时间 / 更新日历 / 站点导航 各占一列。
+ * 这样三张"工具型"卡片天然同高、高度也接近，不会出现某张被强行拉长后大片留白；
+ * md 两列时逐行是 2 / 2 / 1+1 / 2，同样整除，不留半行空洞。
+ */
+
+const allPosts = sortPostsByDate(await getAllPosts());
+const latestPosts = allPosts.slice(0, 5).map((post) => ({
+  id: post.id,
+  title: post.data.title,
+  description: post.data.description,
+  pubDate: post.data.pubDate,
+  categories: post.data.categories,
+}));
+
+// 「更新日历」用：按日期把文章分组，日历上就能标出哪几天有更新。
+// 这里用的是构建机的本地时区，与目标读者（东八区）一致；跨时区访客最多差一天。
+function toLocalDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+const postsByDate: Record<string, { title: string; url: string }[]> = {};
+for (const post of allPosts) {
+  const key = toLocalDateKey(post.data.pubDate);
+  const bucket = postsByDate[key] ?? [];
+  bucket.push({ title: post.data.title, url: `/blog/${post.id}` });
+  postsByDate[key] = bucket;
+}
 ---
 
-<BaseLayout title="首页">
-  <MainCard
-    title="欢迎来到 Cikio"
-    description="Cikio 是 CikiSyteen 的个人博客，记录开发实践与技术笔记。"
-    textOverlay="HOME"
-    infoIcon="lucide:info"
-  >
-    <div class="space-y-8">
-      <!-- Hero Section -->
-      <section class="py-6">
-        <div class="flex flex-col items-center text-center">
-          <h2
-            class="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-loose"
-          >
-            🌟 Cikio
-          </h2>
-          <p class="text-xl text-base-content/80 max-w-3xl mb-8">
-            记录开发实践、工具链，以及我一路搭建的东西。
-          </p>
-          <div class="flex flex-wrap gap-4 justify-center">
-            <a href="/blog" class="btn btn-primary gap-2 btn-shine-effect">
-              <Icon name="lucide:book-open" class="w-5 h-5" />
-              <span>浏览博客</span>
-            </a>
-            <a href="https://github.com/CikiSyteen/cikio-main" target="_blank" rel="noopener noreferrer" class="btn btn-outline gap-2">
-              <Icon name="lucide:github" class="w-5 h-5" />
-              <span>在 GitHub 上加星</span>
-            </a>
-          </div>
-        </div>
-      </section>
+<BaseLayout title="首页" hideSidebar>
+  <HomeBackdrop />
 
-      <!-- Features Section -->
-      <section class="py-6">
-        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-          <Icon name="lucide:sparkles" class="w-6 h-6 text-primary" />
-          <span>功能特性</span>
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureCard
-            title="响应式布局"
-            description="从手机到桌面，各种屏幕尺寸都显示良好。"
-            icon="lucide:smartphone"
-            color="oklch(0.7 0.2 30)"
-          />
-
-          <FeatureCard
-            title="明暗主题"
-            description="一键切换明暗主题，带平滑的过渡动效。"
-            icon="lucide:moon"
-            color="oklch(0.65 0.2 280)"
-          />
-
-          <FeatureCard
-            title="支持 MDX"
-            description="用 MDX 写作，可直接在文中调用自定义组件。"
-            icon="lucide:file-code"
-            color="oklch(0.6 0.2 160)"
-          />
-
-          <FeatureCard
-            title="SEO 优化"
-            description="内置 meta 标签、OpenGraph 与 JSON-LD 结构化数据。"
-            icon="lucide:search"
-            color="oklch(0.6 0.2 200)"
-          />
-
-          <FeatureCard
-            title="加载迅速"
-            description="懒加载、代码分割与极少的 JavaScript，专注速度。"
-            icon="lucide:zap"
-            color="oklch(0.8 0.2 80)"
-          />
-
-          <FeatureCard
-            title="易于定制"
-            description="主题可自由调整，贴合你的个人风格。"
-            icon="lucide:palette"
-            color="oklch(0.7 0.2 10)"
-          />
-        </div>
-      </section>
-
-      <!-- Quick Start -->
-      <section class="py-6">
-        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-          <Icon name="lucide:rocket" class="w-6 h-6 text-primary" />
-          <span>快速开始</span>
-        </h2>
-
-        <div class="card bg-base-200 p-6">
-          <h3 class="text-xl font-bold mb-4">三步开始使用：</h3>
-
-          <ol class="space-y-6 mb-6">
-            <li class="relative flex flex-col gap-4 items-start">
-              <div class="flex gap-4 items-center">
-                <div
-                  class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content flex-shrink-0"
-                >
-                  1
-                </div>
-                <h4 class="font-bold">克隆仓库</h4>
-              </div>
-              <div class="relative w-full">
-                <p class="text-base-content/70 mb-2">用 Git 把 Cikio 仓库克隆到本地：</p>
-                <Code code="git clone --depth 1 https://github.com/CikiSyteen/cikio-main.git cikio" lang="sh" />
-              </div>
-            </li>
-
-            <li class="relative flex flex-col gap-4 items-start">
-              <div class="flex gap-4 items-center">
-                <div
-                  class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content flex-shrink-0"
-                >
-                  2
-                </div>
-                <h4 class="font-bold">安装依赖</h4>
-              </div>
-              <div class="relative w-full">
-                <p class="text-base-content/70 mb-2">进入项目目录并安装依赖：</p>
-                <Code code="cd cikio && pnpm install" lang="sh" />
-              </div>
-            </li>
-
-            <li class="relative flex flex-col gap-4 items-start">
-              <div class="flex gap-4 items-center">
-                <div
-                  class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content flex-shrink-0"
-                >
-                  3
-                </div>
-                <h4 class="font-bold">启动开发服务器</h4>
-              </div>
-              <div class="relative w-full">
-                <p class="text-base-content/70 mb-2">启动本地开发服务器预览站点：</p>
-                <Code code="pnpm run search:index && pnpm run dev" lang="sh" />
-              </div>
-            </li>
-          </ol>
-
-          <div class="alert bg-primary/10 text-primary mb-0">
-            <Icon name="lucide:lightbulb" class="w-6 h-6" />
-            <span
-              >更多使用指南与文档，见 <a href="/blog" class="underline">博客专栏</a>。</span
-            >
-          </div>
-        </div>
-      </section>
-
-      <!-- GitHub Stats -->
-      <section class="py-6">
-        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-          <Icon name="lucide:github" class="w-6 h-6 text-primary" />
-          <span>仓库数据</span>
-        </h2>
-
-        <GitHubStats username="CikiSyteen" repositoryName="cikio-main" />
-      </section>
-    </div>
-  </MainCard>
+  <div class="home-widget-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <HomeHero class="md:col-span-2 lg:col-span-3" />
+    <LatestPostsWidget posts={latestPosts} class="md:col-span-2 lg:col-span-3" />
+    <ClockWeatherWidget class="md:col-span-1" />
+    <CalendarWidget postsByDate={postsByDate} class="md:col-span-1" />
+    <SiteNavWidget class="md:col-span-2 lg:col-span-1" />
+  </div>
 </BaseLayout>

@@ -65,6 +65,14 @@ user:
   site: "https://www.cikio.cn" # 用户的网站链接（同时作为 astro 的 site：canonical / sitemap / RSS / OG 的基准 URL）
   avatar: /profile.png # 用户头像路径
   bio: "" # 个人简介（显示在侧栏头像下方，留空则整行不显示）
+  # 首页天气小组件（可选）。数据来自 Open-Meteo 的免费接口：HTTPS、无需密钥、无需注册。
+  # 不需要天气就把 enabled 改成 false（首页只保留日期与时间）。
+  # city 只是界面上的文案，真正查询的是 latitude / longitude，换城市时两个都要改。
+  weather:
+    enabled: true
+    city: 上海
+    latitude: 31.2304
+    longitude: 121.4737
   sidebar: # 侧边栏配置
     social:
       - href: "https://afdian.com/a/CikiSyteenIsHere" # 链接

@@ -1,0 +1,74 @@
+---
+import { SITE_MENU } from "@config";
+import { Icon } from "astro-icon/components";
+import WidgetCard from "./WidgetCard.astro";
+
+/**
+ * 站点导航小组件。
+ *
+ * 主入口直接取自 frosti.config.yaml 的 site.menu —— 与顶部导航同源，
+ * 以后增删菜单项只改一处；首页自身那条（href 为 /）会被滤掉，避免自链接。
+ * 其余是主菜单里没有、但访客常用的落点（归档 / 分类 / 标签 / 搜索 / 订阅）。
+ */
+
+export interface SiteNavWidgetProps {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props as SiteNavWidgetProps;
+
+const primaryItems = SITE_MENU.filter((item) => item.href !== "/").map(
+  (item) => ({
+    title: item.text,
+    href: item.href,
+    icon: item.svg || "lucide:link",
+  }),
+);
+
+const secondaryItems = [
+  { title: "全部文章", href: "/blog", icon: "lucide:book-open" },
+  { title: "归档", href: "/blog/archives", icon: "lucide:archive" },
+  { title: "分类", href: "/blog/categories", icon: "lucide:folder" },
+  { title: "标签", href: "/blog/tags", icon: "lucide:tag" },
+  { title: "搜索", href: "/blog/search", icon: "lucide:search" },
+  { title: "订阅", href: "/rss.xml", icon: "lucide:rss" },
+];
+---
+
+<WidgetCard id="home-nav" title="站点导航" icon="lucide:compass" class={className}>
+  <div class="flex flex-col gap-3">
+    {/*
+      列数跟着卡片自身的宽度走：卡片在 md 占两列（宽）、lg 只占一列（窄）。
+      Tailwind 断点看的是视口而不是容器宽度，所以这里要按断点分别指定。
+    */}
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-2">
+      {
+        primaryItems.map((item) => (
+          <a
+            href={item.href}
+            class="group flex items-center gap-3 rounded-xl border border-base-300/60 bg-base-200/70 p-3 transition-all duration-300 ease-in-out hover:-translate-y-1 hover:border-primary/40 hover:bg-base-200 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          >
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-base-100 text-primary shadow-sm transition-transform duration-300 group-hover:scale-110">
+              <Icon name={item.icon} class="h-5 w-5" aria-hidden="true" />
+            </span>
+            <span class="min-w-0 truncate text-sm font-medium">{item.title}</span>
+          </a>
+        ))
+      }
+    </div>
+
+    <div class="flex flex-wrap gap-2 border-t border-base-300/50 pt-3">
+      {
+        secondaryItems.map((item) => (
+          <a
+            href={item.href}
+            class="btn btn-ghost btn-sm gap-1.5 text-base-content/70 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          >
+            <Icon name={item.icon} class="h-4 w-4" aria-hidden="true" />
+            <span>{item.title}</span>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</WidgetCard>

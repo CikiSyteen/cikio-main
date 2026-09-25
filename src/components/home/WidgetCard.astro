@@ -1,0 +1,69 @@
+---
+import { Icon } from "astro-icon/components";
+
+/**
+ * 首页小组件的统一外壳：标题栏（图标 + 标题 + 可选的「更多」入口）+ 内容区。
+ *
+ * 视觉语言刻意与站内既有的卡片对齐（Card.astro 的 rounded-xl / shadow-lg 一脉），
+ * 只把圆角放到 2xl、底色调成 bg-base-100/90 —— 半透明是为了让身后的风景壁纸透出来，
+ * 又保留足够的对比度，且随主题自动在"白玻璃 / 暗玻璃"之间翻转。
+ */
+
+export interface WidgetCardProps {
+  /** 卡片锚点与 aria-labelledby 用的唯一 id（不带前缀） */
+  id: string;
+  /** 卡片标题 */
+  title: string;
+  /** 标题左侧图标（iconify 名，如 lucide:clock） */
+  icon: string;
+  /** 标题右侧「更多」链接目标，留空则不渲染该入口 */
+  href?: string;
+  /** 「更多」链接文案 */
+  hrefLabel?: string;
+  /** 追加的 class（首页用它来控制栅格跨列与错峰顺序） */
+  class?: string;
+}
+
+const {
+  id,
+  title,
+  icon,
+  href,
+  hrefLabel = "查看全部",
+  class: className = "",
+} = Astro.props as WidgetCardProps;
+
+const headingId = `${id}-title`;
+---
+
+<section
+  aria-labelledby={headingId}
+  class:list={[
+    "home-widget flex flex-col gap-4 rounded-2xl border border-base-300/50 p-5 shadow-lg",
+    className,
+  ]}
+>
+  <header class="flex items-center justify-between gap-3">
+    <h2 id={headingId} class="flex items-center gap-2 text-base font-bold">
+      <Icon name={icon} class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+      <span>{title}</span>
+    </h2>
+
+    {
+      href && (
+        <a
+          href={href}
+          class="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-base-content/60 transition-colors duration-200 hover:bg-base-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+        >
+          <span>{hrefLabel}</span>
+          <Icon name="lucide:arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
+        </a>
+      )
+    }
+  </header>
+
+  <!-- 内容区做成 flex 列：卡片在栅格里被拉伸到同高时，内部可以自行分配空白 -->
+  <div class="flex min-w-0 flex-1 flex-col">
+    <slot />
+  </div>
+</section>

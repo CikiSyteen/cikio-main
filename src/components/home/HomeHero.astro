@@ -1,0 +1,72 @@
+---
+import { Image } from "astro:assets";
+import {
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+  USER_AVATAR,
+  USER_BIO,
+  USER_NAME,
+} from "@config";
+import { Icon } from "astro-icon/components";
+
+/**
+ * 首页首屏：简要说明小组件。
+ *
+ * 承担两件事：
+ *  - 页面唯一的 h1（其余小组件的标题都是 h2），保证标题层级完整；
+ *  - 提供通往博客的主入口（点击交互），配合 ClientRouter 的视图过渡完成"渐变切换"。
+ *
+ * 不在这里再放一张风景图：壁纸已经是同一张，重复出现会显得啰嗦，
+ * 这里只做半透明卡面，让风景从卡片后面透出来。
+ */
+
+export interface HomeHeroProps {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props as HomeHeroProps;
+
+// bio 留空时退回站点描述，避免出现空段落
+const intro = USER_BIO || SITE_DESCRIPTION;
+---
+
+<section
+  aria-labelledby="home-hero-title"
+  class:list={[
+    // home-widget-hero：比其余小组件更透（见 global.scss），让壁纸在首屏就"露脸"
+    "home-widget home-widget-hero relative overflow-hidden rounded-2xl border border-base-300/50 p-6 shadow-lg sm:p-8",
+    className,
+  ]}
+>
+  <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
+    <Image
+      src={USER_AVATAR}
+      alt={`${USER_NAME} 的头像`}
+      format="webp"
+      width={192}
+      height={192}
+      loading="eager"
+      class="h-20 w-20 shrink-0 rounded-2xl object-cover ring-2 ring-primary/25 sm:h-24 sm:w-24"
+    />
+
+    <div class="min-w-0 flex-1">
+      <p class="text-sm text-base-content/60">你好，欢迎来到</p>
+      <h1 id="home-hero-title" class="mt-1 text-2xl font-bold sm:text-3xl">{SITE_TITLE}</h1>
+      <p class="mt-2 text-sm leading-relaxed text-base-content/75 sm:text-base">{intro}</p>
+    </div>
+
+    <div class="flex shrink-0 flex-wrap gap-3 sm:flex-col">
+      <a href="/blog" class="btn btn-primary gap-2">
+        <Icon name="lucide:book-open" class="h-4 w-4" aria-hidden="true" />
+        <span>进入博客</span>
+      </a>
+      <a
+        href="/about"
+        class="btn btn-ghost gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      >
+        <Icon name="lucide:user" class="h-4 w-4" aria-hidden="true" />
+        <span>关于我</span>
+      </a>
+    </div>
+  </div>
+</section>

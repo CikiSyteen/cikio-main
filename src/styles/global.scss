@@ -28,6 +28,9 @@ html {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    // 错峰动画的延迟也要归零：只把时长压到 0.01ms 而保留 delay，
+    // 会把"淡入"变成"先空白一段时间再突然出现"，反而更刺眼。
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
@@ -168,6 +171,148 @@ code {
 .sidebar-settled ~ .sidebar-stack .onload-animation {
   opacity: 1;
   animation: none;
+}
+
+// ==================== 首页：风景壁纸层 ====================
+//
+// 固定定位 + 负 z-index，压在全部内容之下。html 的 bg-base-300 是画在画布上的，
+// 负 z-index 的后代依然可见，所以不需要给 body 再铺一层底色。
+.home-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-backdrop-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+// 亮色主题：极薄的一层，风景基本原样透出，只压掉一点刺眼的高光。
+.home-backdrop-veil {
+  position: absolute;
+  inset: 0;
+  background-color: oklch(var(--b1) / 0.08);
+}
+
+// 暗色主题：换成深色并大幅加重。这是这张壁纸最关键的适配 ——
+// 它是一张白天拍的明亮海滩照，不压暗的话会把暗色卡片顶成中灰，正文直接看不清。
+// 这里必须按 data-theme-type 分支：项目没有配 darkMode，Tailwind 的 dark: 走的是
+// prefers-color-scheme，与站内「手动 + auto」的三态主题不同源，用它会错配。
+[data-theme-type="dark"] .home-backdrop-veil {
+  background-color: oklch(var(--b1) / 0.62);
+}
+
+// 上下两端各收一条渐变到主题底色，让顶部融进导航栏、底部融进页脚，
+// 中间整段完整透出风景（早先用的是整屏 from-via-to，结果中间也被稀释掉了）。
+.home-backdrop-top,
+.home-backdrop-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7rem;
+}
+
+.home-backdrop-top {
+  top: 0;
+  background-image: linear-gradient(to bottom, oklch(var(--b1) / 0.9), transparent);
+}
+
+.home-backdrop-bottom {
+  bottom: 0;
+  background-image: linear-gradient(to top, oklch(var(--b1) / 0.9), transparent);
+}
+
+// ==================== 首页小组件 ====================
+//
+// 卡片底色按主题给不同透明度：亮色下要能透出壁纸（玻璃感），
+// 暗色下必须够实（壁纸被压暗后仍是中等亮度，卡片太透会让正文对比度不够）。
+.home-widget {
+  background-color: oklch(var(--b1) / 0.68);
+}
+
+[data-theme-type="dark"] .home-widget {
+  background-color: oklch(var(--b1) / 0.9);
+}
+
+// 首屏那张卡再透一档：它承载标题与简介，字号大、对比度余量足，
+// 换成更透的底就能在首屏把风景露出来。放在 .home-widget 之后覆盖之。
+.home-widget-hero {
+  background-color: oklch(var(--b1) / 0.32);
+}
+
+// 暗色下不跟着一起透：daisyUI 的 --b1 在暗色主题里只是"深灰"（约 29% 亮度）而非近黑，
+// 一旦透出明亮的风景，白字对比度会掉到 3:1 以下。想要风景就别用暗色主题。
+[data-theme-type="dark"] .home-widget-hero {
+  background-color: oklch(var(--b1) / 0.75);
+}
+
+// 入场动画单独用一个类名，而不是复用 .onload-animation：
+// BaseLayout 的 slot 外层已经挂了 .onload-animation（整块内容淡入一次），
+// 再叠一个同名动画会让两段位移叠加、看起来发飘。这里只做小幅的错峰上浮。
+//
+// 延迟按栅格里的 DOM 顺序递增（.home-widget 就是栅格的直接子元素），
+// 所以顺序由 index.astro 的排列决定，不需要在组件里传 index。
+.home-widget {
+  opacity: 0;
+  animation: 420ms fadeInUp cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.home-widget-grid > .home-widget:nth-child(1) {
+  animation-delay: 60ms;
+}
+
+.home-widget-grid > .home-widget:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.home-widget-grid > .home-widget:nth-child(3) {
+  animation-delay: 220ms;
+}
+
+.home-widget-grid > .home-widget:nth-child(4) {
+  animation-delay: 300ms;
+}
+
+.home-widget-grid > .home-widget:nth-child(5) {
+  animation-delay: 380ms;
+}
+
+// ==================== 站内换页过渡 ====================
+//
+// Astro 默认的 root 交叉淡入偏"硬"（卸载与装载同时开始、时长很短），
+// 读起来接近"闪一下"。这里让旧页先快速淡出、新页稍慢地接上（带一点间隔），
+// 于是「首页 → 博客」这类跳转呈现为一次连贯的渐变。
+//
+// 只做 opacity，不做位移：侧栏带 transition:persist，它有自己的过渡分组、
+// 不跟随 root 快照，若给 root 加 transform 会出现"内容在动、侧栏不动"的割裂感。
+//
+// 必须显式包 no-preference：上面 prefers-reduced-motion 的归零规则用的是
+// *, *::before, *::after，匹配不到视图过渡的伪元素，不包住就等于没做降级。
+@media (prefers-reduced-motion: no-preference) {
+  html::view-transition-old(root) {
+    animation: 200ms cubic-bezier(0.4, 0, 1, 1) both home-vt-fade-out;
+  }
+
+  html::view-transition-new(root) {
+    animation: 340ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both home-vt-fade-in;
+  }
+}
+
+@keyframes home-vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes home-vt-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 // Common container for blog pages

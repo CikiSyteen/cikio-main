@@ -1,0 +1,38 @@
+---
+import { Image } from "astro:assets";
+import homeLandscape from "@/assets/home-landscape.webp";
+
+/**
+ * 首页的全屏风景壁纸层（参考 type/62296d 的沉浸式背景做法）。
+ *
+ * 几个关键取舍：
+ *  1. 固定定位 + 负 z-index，因此位于所有内容之下。html 的 bg-base-300 画在画布
+ *     （canvas）上，负 z-index 的后代依然可见，所以不必给 body 另外铺底色。
+ *  2. 图走 astro:assets：构建期产出多尺寸 webp 与 srcset，避免像参考页那样直连
+ *     Unsplash（无尺寸、必然 CLS、还受网络可达性影响）。
+ *  3. 遮罩的透明度与颜色随主题分支（样式在 global.scss 的「首页」区块）：
+ *     亮色主题下壁纸是"清透的雾"，暗色主题下要压得更实，否则白天拍的明亮风景
+ *     会把暗色卡片顶得发灰、正文对比度不够。
+ */
+---
+
+<div class="home-backdrop" aria-hidden="true">
+  <Image
+    src={homeLandscape}
+    alt=""
+    widths={[640, 1024, 1600, 2048]}
+    sizes="100vw"
+    format="webp"
+    quality={72}
+    loading="eager"
+    decoding="async"
+    class="home-backdrop-image"
+  />
+
+  <!-- 整体薄纱 -->
+  <div class="home-backdrop-veil"></div>
+
+  <!-- 只在上下两端收到主题底色：顶部融进导航栏、底部融进页脚，中间完整透出风景 -->
+  <div class="home-backdrop-top"></div>
+  <div class="home-backdrop-bottom"></div>
+</div>

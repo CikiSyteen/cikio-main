@@ -35,8 +35,11 @@ export const CODE_THEME = config.site.theme.code;
 export const USER_NAME = config.user.name;
 export const USER_SITE = config.user.site;
 export const USER_AVATAR = config.user.avatar;
-// 个人简介（侧栏 Profile 卡片，留空则不渲染该行）
-export const USER_BIO = (config.user as { bio?: string }).bio ?? "";
+// 个人简介（侧栏 Profile 卡片与首页，留空则不渲染该行）
+export const USER_BIO = config.user.bio ?? "";
+
+// 首页天气小组件（可选；未配置时首页只显示日期与时间）
+export const WEATHER_CONFIG = config.user.weather ?? null;
 
 // 社交图标配置（侧边栏和页脚）
 export const USER_SIDEBAR_SOCIAL_ICONS = config.user.sidebar.social;
