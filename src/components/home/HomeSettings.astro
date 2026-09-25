@@ -23,8 +23,17 @@ export interface HomeSettingsProps {
   quoteInterval: number;
 }
 
-const { backgrounds, defaultBackground, backgroundInterval, quoteInterval } =
-  Astro.props;
+// 必须显式断言：Astro.props 的类型是 Record<string, any>，不写 as 的话
+// 所有 prop 都会退化成 any（上面导出的 HomeSettingsProps 就成了死代码），
+// 模板里 backgrounds.map((item) => ...) 的 item 也会跟着隐式 any。
+// 缺省值只是运行时兜底：prop 缺失时退化为"没有可选背景"，而不是在
+// backgrounds.length 处抛错。
+const {
+  backgrounds = [],
+  defaultBackground = "",
+  backgroundInterval = 0,
+  quoteInterval = 0,
+} = Astro.props as HomeSettingsProps;
 
 // 轮换间隔可选项（秒）
 const INTERVAL_OPTIONS = [0, 10, 30, 60, 300, 1800];
@@ -177,29 +186,37 @@ const defaults = {
     window.dispatchEvent(new CustomEvent("cikio:home-settings"));
   }
 
-  function syncPanel(defaults: HomeSettings, settings: HomeSettings): void {
+  // 查询一律限定在 root 内，与下面的绑定逻辑保持一致：
+  // 用 document 级选择器的话，这个组件就不再是自包含的 ——
+  // 将来若同时渲染两个实例（比如移动端另做一份），两个面板会互相覆盖选中态。
+  function syncPanel(root: HTMLElement, defaults: HomeSettings, settings: HomeSettings): void {
     const background = settings.bg ?? defaults.bg ?? "";
-    document.querySelectorAll<HTMLInputElement>("[data-home-bg-option]").forEach((input) => {
+    root.querySelectorAll<HTMLInputElement>("[data-home-bg-option]").forEach((input) => {
       input.checked = input.value === background;
     });
 
-    const quoteSelect = document.querySelector<HTMLSelectElement>("[data-home-quote-interval]");
+    const quoteSelect = root.querySelector<HTMLSelectElement>("[data-home-quote-interval]");
     if (quoteSelect) {
       quoteSelect.value = String(settings.quoteInterval ?? defaults.quoteInterval ?? 0);
     }
 
-    const bgSelect = document.querySelector<HTMLSelectElement>("[data-home-bg-interval]");
+    const bgSelect = root.querySelector<HTMLSelectElement>("[data-home-bg-interval]");
     if (bgSelect) {
       bgSelect.value = String(settings.bgInterval ?? defaults.bgInterval ?? 0);
     }
   }
 
   function initSettings(): void {
+    // 这个脚本是全站打包的，每个页面的 astro:page-load 都会跑一遍，
+    // 而面板只存在于首页。所以先判断面板是否存在，再去解析 defaults 的 JSON ——
+    // 否则非首页的每次进入都会白做一次 querySelector + JSON.parse。
     const root = document.querySelector<HTMLElement>("[data-home-settings]");
-    const defaults = readDefaults();
-    if (!root || !defaults) return;
+    if (!root) return;
 
-    syncPanel(defaults, readSettings());
+    const defaults = readDefaults();
+    if (!defaults) return;
+
+    syncPanel(root, defaults, readSettings());
 
     // 用 on* 赋值而不是 addEventListener：astro:page-load 每次换页都会跑一遍，
     // 赋值天然幂等，不会把同一个处理器叠好几层。
@@ -235,7 +252,7 @@ const defaults = {
         } catch {
           /* 忽略 */
         }
-        syncPanel(defaults, {});
+        syncPanel(root, defaults, {});
         broadcast();
       };
     }
