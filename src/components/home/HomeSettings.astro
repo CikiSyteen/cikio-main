@@ -1,12 +1,17 @@
 ---
 import type { HomeBackgroundItem } from "@interfaces/site";
+import { ROTATION_OPTIONS } from "@utils/homeRotation";
 import { Icon } from "astro-icon/components";
 
 /**
  * 首页右上角的齿轮设置面板。
  *
  * 只出现在首页（hero 版式），站内其它页面不渲染。
- * 能改三件事：背景图、一言轮换间隔、背景轮换间隔。
+ * 能改三件事：背景图、一言轮换方式、背景轮换方式。
+ *
+ * 面板是居中弹窗（原生 <dialog> + showModal）而不是原先的下拉菜单：
+ * 下拉浮在 hero 版式里，内容一多就贴着视口边、也会和浮动的胶囊导航打架；
+ * 弹窗有原生遮罩把注意力收进来，Esc 关闭、焦点收束、遮罩点击关闭全部由浏览器负责。
  *
  * 全部存在 localStorage 的 `cikio-home-settings` 里，不改服务端任何东西 ——
  * 也就是说每个访客看到的是自己选的画面。改完通过 `cikio:home-settings`
@@ -19,66 +24,75 @@ import { Icon } from "astro-icon/components";
 export interface HomeSettingsProps {
   backgrounds: HomeBackgroundItem[];
   defaultBackground: string;
-  backgroundInterval: number;
-  quoteInterval: number;
+  /** 背景默认轮换方式，取值见 @utils/homeRotation */
+  backgroundMode: string;
+  /** 一言默认轮换方式，取值见 @utils/homeRotation */
+  quoteMode: string;
 }
 
 // 必须显式断言：Astro.props 的类型是 Record<string, any>，不写 as 的话
-// 所有 prop 都会退化成 any（上面导出的 HomeSettingsProps 就成了死代码），
-// 模板里 backgrounds.map((item) => ...) 的 item 也会跟着隐式 any。
+// 所有 prop 都会退化成 any（上面导出的 HomeSettingsProps 就成了死代码）。
 // 缺省值只是运行时兜底：prop 缺失时退化为"没有可选背景"，而不是在
 // backgrounds.length 处抛错。
 const {
   backgrounds = [],
   defaultBackground = "",
-  backgroundInterval = 0,
-  quoteInterval = 0,
+  backgroundMode = "none",
+  quoteMode = "refresh",
 } = Astro.props as HomeSettingsProps;
-
-// 轮换间隔可选项（秒）
-const INTERVAL_OPTIONS = [0, 10, 30, 60, 300, 1800];
-
-const intervalLabel = (seconds: number): string => {
-  if (seconds <= 0) return "不轮换";
-  if (seconds < 60) return `${seconds} 秒`;
-  if (seconds < 3600) return `${seconds / 60} 分钟`;
-  return `${seconds / 3600} 小时`;
-};
 
 const defaults = {
   bg: defaultBackground,
-  quoteInterval,
-  bgInterval: backgroundInterval,
+  quoteMode,
+  bgMode: backgroundMode,
 };
 ---
 
 <!--
-  固定在视口右上角；移动端下移到导航胶囊下方（胶囊占满宽度，会盖住 top-4 的位置）。
-  只在首页渲染，所以不需要额外的作用域判断。
+  外壳不带任何定位：里面的齿轮是 fixed、弹窗走 <dialog> 的 top layer，
+  两者都以视口为参照。若给外壳加 transform 之类的东西，会把它们的包含块劫持掉。
 -->
-<div class="fixed right-3 top-[5.25rem] z-40 md:right-5 md:top-5" data-home-settings>
-  <div class="dropdown dropdown-end">
-    <div
-      tabindex="0"
-      role="button"
-      class="home-tile home-settings-toggle btn btn-circle h-11 w-11 min-h-0 border-0"
+<div data-home-settings>
+  <!-- 固定在视口右上角；移动端下移到导航胶囊下方（胶囊占满宽度，会盖住 top-4 的位置） -->
+  <div class="fixed right-3 top-[5.25rem] z-40 md:right-5 md:top-5">
+    <button
+      type="button"
+      data-home-settings-open
+      aria-haspopup="dialog"
       aria-label="首页设置"
+      class="home-tile home-settings-toggle btn btn-circle h-11 w-11 min-h-0 border-0"
     >
       <Icon name="lucide:settings" class="h-5 w-5 text-base-content/80" aria-hidden="true" />
-    </div>
+    </button>
+  </div>
 
+  <!-- 居中放大 + 遮罩式弹窗，外观与动画见 global.scss 的 .home-settings-dialog -->
+  <dialog
+    class="home-settings-dialog"
+    data-home-settings-dialog
+    aria-labelledby="home-settings-title"
+  >
     <div
-      tabindex="0"
-      class="dropdown-content z-50 mt-3 w-[19rem] rounded-2xl border border-base-300/50 bg-base-100/95 p-4 shadow-2xl backdrop-blur"
+      class="home-settings-panel flex w-full flex-col gap-4 rounded-2xl border border-base-300/50 bg-base-100 p-5 shadow-2xl"
     >
-      <h2 class="mb-3 flex items-center gap-2 text-sm font-bold">
-        <Icon name="lucide:sliders-horizontal" class="h-4 w-4 text-primary" aria-hidden="true" />
-        <span>首页设置</span>
-      </h2>
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="home-settings-title" class="flex items-center gap-2 text-sm font-bold">
+          <Icon name="lucide:sliders-horizontal" class="h-4 w-4 text-primary" aria-hidden="true" />
+          <span>首页设置</span>
+        </h2>
+        <button
+          type="button"
+          data-home-settings-close
+          aria-label="关闭设置"
+          class="btn btn-ghost btn-sm btn-circle"
+        >
+          <Icon name="lucide:x" class="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
 
       {
         backgrounds.length > 0 && (
-          <fieldset class="mb-4">
+          <fieldset>
             <legend class="mb-2 text-xs text-base-content/70">背景图片</legend>
             <div class="grid grid-cols-3 gap-2">
               {backgrounds.map((item) => (
@@ -111,10 +125,10 @@ const defaults = {
       <div class="flex flex-col gap-2">
         <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
           <span>一言轮换</span>
-          <select class="select select-bordered select-sm" data-home-quote-interval>
+          <select class="select select-bordered select-sm" data-home-quote-mode>
             {
-              INTERVAL_OPTIONS.map((seconds) => (
-                <option value={String(seconds)}>{intervalLabel(seconds)}</option>
+              ROTATION_OPTIONS.map((option) => (
+                <option value={option.value}>{option.label}</option>
               ))
             }
           </select>
@@ -122,21 +136,21 @@ const defaults = {
 
         <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
           <span>背景轮换</span>
-          <select class="select select-bordered select-sm" data-home-bg-interval>
+          <select class="select select-bordered select-sm" data-home-bg-mode>
             {
-              INTERVAL_OPTIONS.map((seconds) => (
-                <option value={String(seconds)}>{intervalLabel(seconds)}</option>
+              ROTATION_OPTIONS.map((option) => (
+                <option value={option.value}>{option.label}</option>
               ))
             }
           </select>
         </label>
       </div>
 
-      <button type="button" class="btn btn-ghost btn-xs mt-3 w-full" data-home-settings-reset>
+      <button type="button" class="btn btn-ghost btn-xs w-full" data-home-settings-reset>
         恢复默认
       </button>
     </div>
-  </div>
+  </dialog>
 </div>
 
 <script
@@ -147,10 +161,15 @@ const defaults = {
 ></script>
 
 <script>
+  import { ROTATION_OPTIONS, normalizeRotation } from "@utils/homeRotation";
+
   const SETTINGS_KEY = "cikio-home-settings";
 
   interface HomeSettings {
     bg?: string;
+    quoteMode?: string;
+    bgMode?: string;
+    /** 旧键：改动前存的是裸秒数，读的时候兜底，避免老访客的选择被静默重置 */
     quoteInterval?: number;
     bgInterval?: number;
   }
@@ -171,7 +190,7 @@ const defaults = {
     }
   }
 
-  function readDefaults(): HomeSettings | null {
+  function readDefaults(): { bg?: string; quoteMode?: string; bgMode?: string } | null {
     const element = document.querySelector<HTMLScriptElement>("[data-home-settings-defaults]");
     if (!element?.textContent) return null;
     try {
@@ -186,24 +205,43 @@ const defaults = {
     window.dispatchEvent(new CustomEvent("cikio:home-settings"));
   }
 
+  /**
+   * 选中态一律按"字符串 + 兜底"写入。
+   * 配置或老设置里可能出现候选列表之外的秒数（例如 45 秒），
+   * 此时 select.value 会变成空串、面板看起来什么都没选中 —— 退回默认值，
+   * 实际生效的值仍由各脚本自己解析，不受面板显示影响。
+   */
+  function setSelect(select: HTMLSelectElement | null, value: string, fallback: string): void {
+    if (!select) return;
+    select.value = value;
+    if (!select.value) select.value = fallback;
+    if (!select.value) select.value = ROTATION_OPTIONS[0].value;
+  }
+
   // 查询一律限定在 root 内，与下面的绑定逻辑保持一致：
   // 用 document 级选择器的话，这个组件就不再是自包含的 ——
   // 将来若同时渲染两个实例（比如移动端另做一份），两个面板会互相覆盖选中态。
-  function syncPanel(root: HTMLElement, defaults: HomeSettings, settings: HomeSettings): void {
+  function syncPanel(
+    root: HTMLElement,
+    defaults: { bg?: string; quoteMode?: string; bgMode?: string },
+    settings: HomeSettings,
+  ): void {
     const background = settings.bg ?? defaults.bg ?? "";
     root.querySelectorAll<HTMLInputElement>("[data-home-bg-option]").forEach((input) => {
       input.checked = input.value === background;
     });
 
-    const quoteSelect = root.querySelector<HTMLSelectElement>("[data-home-quote-interval]");
-    if (quoteSelect) {
-      quoteSelect.value = String(settings.quoteInterval ?? defaults.quoteInterval ?? 0);
-    }
+    setSelect(
+      root.querySelector<HTMLSelectElement>("[data-home-quote-mode]"),
+      normalizeRotation(settings.quoteMode ?? settings.quoteInterval ?? defaults.quoteMode),
+      normalizeRotation(defaults.quoteMode),
+    );
 
-    const bgSelect = root.querySelector<HTMLSelectElement>("[data-home-bg-interval]");
-    if (bgSelect) {
-      bgSelect.value = String(settings.bgInterval ?? defaults.bgInterval ?? 0);
-    }
+    setSelect(
+      root.querySelector<HTMLSelectElement>("[data-home-bg-mode]"),
+      normalizeRotation(settings.bgMode ?? settings.bgInterval ?? defaults.bgMode, "none"),
+      normalizeRotation(defaults.bgMode, "none"),
+    );
   }
 
   function initSettings(): void {
@@ -218,8 +256,30 @@ const defaults = {
 
     syncPanel(root, defaults, readSettings());
 
-    // 用 on* 赋值而不是 addEventListener：astro:page-load 每次换页都会跑一遍，
-    // 赋值天然幂等，不会把同一个处理器叠好几层。
+    const dialog = root.querySelector<HTMLDialogElement>("[data-home-settings-dialog]");
+
+    // showModal 在已打开时会抛 InvalidStateError；换页后 DOM 被替换，
+    // 这里用 on* 赋值天然幂等，不会把同一个处理器叠好几层。
+    const openButton = root.querySelector<HTMLButtonElement>("[data-home-settings-open]");
+    if (openButton && dialog) {
+      openButton.onclick = () => {
+        if (!dialog.open) dialog.showModal();
+      };
+    }
+
+    const closeButton = root.querySelector<HTMLButtonElement>("[data-home-settings-close]");
+    if (closeButton && dialog) {
+      closeButton.onclick = () => dialog.close();
+    }
+
+    if (dialog) {
+      // 点遮罩关闭：遮罩上的点击事件 target 就是 dialog 本身
+      // （面板在 dialog 内部，点它时 target 是里面的元素）。
+      dialog.onclick = (event) => {
+        if (event.target === dialog) dialog.close();
+      };
+    }
+
     root.querySelectorAll<HTMLInputElement>("[data-home-bg-option]").forEach((input) => {
       input.onchange = () => {
         if (!input.checked) return;
@@ -228,18 +288,18 @@ const defaults = {
       };
     });
 
-    const quoteSelect = root.querySelector<HTMLSelectElement>("[data-home-quote-interval]");
+    const quoteSelect = root.querySelector<HTMLSelectElement>("[data-home-quote-mode]");
     if (quoteSelect) {
       quoteSelect.onchange = () => {
-        writeSettings({ ...readSettings(), quoteInterval: Number(quoteSelect.value) });
+        writeSettings({ ...readSettings(), quoteMode: quoteSelect.value });
         broadcast();
       };
     }
 
-    const bgSelect = root.querySelector<HTMLSelectElement>("[data-home-bg-interval]");
+    const bgSelect = root.querySelector<HTMLSelectElement>("[data-home-bg-mode]");
     if (bgSelect) {
       bgSelect.onchange = () => {
-        writeSettings({ ...readSettings(), bgInterval: Number(bgSelect.value) });
+        writeSettings({ ...readSettings(), bgMode: bgSelect.value });
         broadcast();
       };
     }

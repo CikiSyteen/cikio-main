@@ -7,25 +7,27 @@ import WidgetCard from "./WidgetCard.astro";
  * 「一言」卡片。
  *
  * 内容池来自 home.config.yaml 的 quotes.items（留空则整张卡不渲染）。
- * 服务端先渲染第一条，客户端接管后随机换一条并按间隔轮换 ——
- * 间隔的默认值来自配置，访客可以用右上角齿轮面板覆盖（存 localStorage）。
+ * 服务端先渲染第一条，客户端接管后按轮换方式决定显示哪一条 ——
+ * 轮换方式的默认值来自配置，访客可以用右上角齿轮面板覆盖（存 localStorage）。
+ * 四种方式（不轮换 / 每日 / 每次刷新 / 每 N 秒）的定义与解析见 @utils/homeRotation。
  *
  * 换一条用「换一条」按钮手动触发；按钮放在卡片内而不是标题栏，
  * 因为 WidgetCard 的标题栏右侧位置已经被「更多」链接占用了。
  *
- * 卡片会被栅格拉伸到与右侧日历齐平（index.astro 里给的是 h-full），
- * 所以正文与作者行之间用 justify-between 分配空白，而不是堆在上方留一片空。
+ * 卡片的尺寸由 index.astro 固定（sm:h-[10.5rem]），所以正文与作者行之间用
+ * justify-between 分配空白，而不是堆在上方留一片空。
  */
 
 export interface RandomQuoteWidgetProps {
   quotes: HomeQuoteItem[];
-  interval: number;
+  /** 默认轮换方式，取值见 @utils/homeRotation */
+  mode: string;
   class?: string;
 }
 
 const {
   quotes,
-  interval,
+  mode,
   class: className = "",
 } = Astro.props as RandomQuoteWidgetProps;
 
@@ -63,10 +65,12 @@ const first = quotes[0];
   type="application/json"
   data-quote-data
   is:inline
-  set:html={JSON.stringify({ quotes, interval })}
+  set:html={JSON.stringify({ quotes, mode })}
 ></script>
 
 <script>
+  import { dailyRotationIndex, normalizeRotation, parseRotation } from "@utils/homeRotation";
+
   const SETTINGS_KEY = "cikio-home-settings";
 
   let timer: number | undefined;
@@ -75,7 +79,7 @@ const first = quotes[0];
 
   interface QuotePayload {
     quotes: { text: string; author?: string }[];
-    interval: number;
+    mode: string;
   }
 
   function readPayload(): QuotePayload | null {
@@ -88,14 +92,19 @@ const first = quotes[0];
     }
   }
 
-  function intervalOf(payload: QuotePayload): number {
+  /**
+   * 访客的设置优先于配置。一并兼容旧键 quoteInterval（老访客存的是裸秒数）：
+   * 直接换键名会让他们的选择被静默重置。
+   */
+  function modeOf(payload: QuotePayload): string {
     try {
       const settings = JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || "{}");
-      if (Number.isFinite(settings.quoteInterval)) return Number(settings.quoteInterval);
+      if (settings.quoteMode != null) return normalizeRotation(settings.quoteMode);
+      if (settings.quoteInterval != null) return normalizeRotation(settings.quoteInterval);
     } catch {
       /* 忽略，退回配置里的默认值 */
     }
-    return Number(payload.interval) || 0;
+    return normalizeRotation(payload.mode);
   }
 
   function pickIndex(total: number): number {
@@ -109,12 +118,12 @@ const first = quotes[0];
     return index;
   }
 
-  function renderRandom(payload: QuotePayload): void {
-    const textElement = document.querySelector("[data-quote-text]");
-    if (!textElement || payload.quotes.length === 0) return;
+  function applyQuote(payload: QuotePayload, index: number): void {
+    const item = payload.quotes[index];
+    if (!item) return;
 
-    const item = payload.quotes[pickIndex(payload.quotes.length)];
-    textElement.textContent = item.text;
+    const textElement = document.querySelector("[data-quote-text]");
+    if (textElement) textElement.textContent = item.text;
 
     const authorElement = document.querySelector("[data-quote-author]");
     if (authorElement) {
@@ -126,21 +135,33 @@ const first = quotes[0];
     const payload = readPayload();
     if (!payload || payload.quotes.length === 0) return;
 
-    renderRandom(payload);
+    const total = payload.quotes.length;
+    const rotation = parseRotation(modeOf(payload));
 
     window.clearInterval(timer);
-    const seconds = intervalOf(payload);
-    if (seconds > 0) {
-      timer = window.setInterval(() => renderRandom(payload), seconds * 1000);
+    timer = undefined;
+
+    // 「不轮换」固定第一条；「每日」取当天对应的那条；「每次刷新」与定时模式先随机一条
+    let shown: number;
+    if (rotation.kind === "none") shown = 0;
+    else if (rotation.kind === "daily") shown = dailyRotationIndex(new Date(), total);
+    else shown = pickIndex(total);
+
+    // 记下当前这一条：手动「换一条」靠它避免又抽到同一条
+    lastIndex = shown;
+    applyQuote(payload, shown);
+
+    if (rotation.kind === "timer" && rotation.seconds > 0) {
+      timer = window.setInterval(() => applyQuote(payload, pickIndex(total)), rotation.seconds * 1000);
     }
 
     const button = document.querySelector<HTMLButtonElement>("[data-quote-next]");
     if (button) {
-      button.onclick = () => renderRandom(payload);
+      button.onclick = () => applyQuote(payload, pickIndex(total));
     }
   }
 
   document.addEventListener("astro:page-load", initQuote);
-  // 齿轮面板改了轮换间隔后立即按新间隔重排
+  // 齿轮面板改了轮换方式后立即按新方式重排
   window.addEventListener("cikio:home-settings", initQuote);
 </script>

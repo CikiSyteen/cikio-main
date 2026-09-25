@@ -127,8 +127,11 @@ export interface HomeBackgroundItem {
 export interface HomeBackgroundConfig {
   images: HomeBackgroundItem[];
   default?: string;
-  /** 自动轮换间隔（秒），0 = 不轮换 */
-  interval: number;
+  /**
+   * 轮换方式：none / daily / refresh，或直接写秒数（30 = 每 30 秒）。
+   * 裸数字按历史语义理解（背景的 0 = none），解析见 @utils/homeRotation。
+   */
+  interval?: number | string;
 }
 
 export interface HomeQuoteItem {
@@ -138,8 +141,11 @@ export interface HomeQuoteItem {
 
 export interface HomeQuotesConfig {
   items: HomeQuoteItem[];
-  /** 自动轮换间隔（秒），0 = 不轮换 */
-  interval: number;
+  /**
+   * 轮换方式：none / daily / refresh，或直接写秒数（30 = 每 30 秒）。
+   * 裸数字按历史语义理解（一言的 0 = refresh），解析见 @utils/homeRotation。
+   */
+  interval?: number | string;
 }
 
 export interface HomeHolidayEntry {

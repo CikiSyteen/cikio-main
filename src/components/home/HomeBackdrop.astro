@@ -13,17 +13,21 @@ import type { HomeBackgroundItem } from "@interfaces/site";
  *  3. 两层 <img> 叠放 + 透明度交叉淡入：换图时先把新图放进隐藏层，
  *     等它 load 完再交换透明度，否则改 src 的那一刻会闪一下页面底色。
  *  4. 遮罩按主题分支（样式在 global.scss）：亮色只加一层极薄薄纱，暗色大幅压暗。
- *  5. 选中的图与轮换间隔来自访客的 localStorage 设置（齿轮面板写入），
+ *  5. 选中的图与轮换方式来自访客的 localStorage 设置（齿轮面板写入），
  *     没有设置时退回 home.config.yaml 里的默认值。
+ *
+ * 轮换方式有四种（见 @utils/homeRotation）：不轮换 / 每日 / 每次刷新 / 每 N 秒。
+ * 访客显式选过某张图时永远以他的选择为准，上面四种方式只在"没选过"时决定显示哪一张。
  */
 
 export interface HomeBackdropProps {
   backgrounds: HomeBackgroundItem[];
   defaultId: string;
-  interval: number;
+  /** 默认轮换方式，取值见 @utils/homeRotation */
+  mode: string;
 }
 
-const { backgrounds, defaultId, interval } = Astro.props as HomeBackdropProps;
+const { backgrounds, defaultId, mode } = Astro.props as HomeBackdropProps;
 
 const active =
   backgrounds.find((item) => item.id === defaultId) ?? backgrounds[0];
@@ -77,17 +81,20 @@ const srcsetOf = (path: string) =>
   type="application/json"
   data-home-bg-data
   is:inline
-  set:html={JSON.stringify({ backgrounds, defaultId, interval })}
+  set:html={JSON.stringify({ backgrounds, defaultId, mode })}
 ></script>
 
 <script>
+  import type { Rotation } from "@utils/homeRotation";
+  import { dailyRotationIndex, normalizeRotation, parseRotation } from "@utils/homeRotation";
+
   const SETTINGS_KEY = "cikio-home-settings";
 
   // 当前正在显示的是哪一层；模块级变量在同一次会话内跨站内换页保留
   let activeLayer: "a" | "b" = "a";
   let rotationTimer: number | undefined;
 
-  function readSettings(): { bg?: string; bgInterval?: number } {
+  function readSettings(): { bg?: string; bgMode?: string; bgInterval?: number } {
     try {
       return JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || "{}");
     } catch {
@@ -95,7 +102,7 @@ const srcsetOf = (path: string) =>
     }
   }
 
-  function readPayload(): { backgrounds: { id: string; path: string }[]; defaultId: string; interval: number } | null {
+  function readPayload(): { backgrounds: { id: string; path: string }[]; defaultId: string; mode: string } | null {
     const element = document.querySelector<HTMLScriptElement>("[data-home-bg-data]");
     if (!element?.textContent) return null;
     try {
@@ -119,17 +126,38 @@ const srcsetOf = (path: string) =>
     img.src = `${path}-1920.webp`;
   }
 
-  function wantedId(payload: { backgrounds: { id: string }[]; defaultId: string }): string {
+  /**
+   * 访客的设置优先于配置。一并兼容旧键 bgInterval（老访客存的是裸秒数）；
+   * 背景的 0 按"不轮换"理解 —— 与一言不同，它有明确的默认图。
+   */
+  function rotationOf(payload: { mode: string }): Rotation {
     const settings = readSettings();
-    return payload.backgrounds.some((item) => item.id === settings.bg)
-      ? (settings.bg as string)
-      : payload.defaultId;
+    if (settings.bgMode != null) return parseRotation(settings.bgMode, "none");
+    if (settings.bgInterval != null) return parseRotation(settings.bgInterval, "none");
+    return parseRotation(normalizeRotation(payload.mode, "none"), "none");
   }
 
-  function intervalOf(payload: { interval: number }): number {
+  /** 该显示哪一张：访客显式选过就一直是那张，没选过才交给轮换方式决定 */
+  function wantedId(payload: {
+    backgrounds: { id: string }[];
+    defaultId: string;
+    mode: string;
+  }): string {
     const settings = readSettings();
-    const value = Number.isFinite(settings.bgInterval) ? settings.bgInterval : payload.interval;
-    return Number(value) || 0;
+    if (payload.backgrounds.some((item) => item.id === settings.bg)) {
+      return settings.bg as string;
+    }
+
+    const rotation = rotationOf(payload);
+    const total = payload.backgrounds.length;
+    if (total === 0) return payload.defaultId;
+    if (rotation.kind === "refresh") {
+      return payload.backgrounds[Math.floor(Math.random() * total)].id;
+    }
+    if (rotation.kind === "daily") {
+      return payload.backgrounds[dailyRotationIndex(new Date(), total)].id;
+    }
+    return payload.defaultId;
   }
 
   /** 无过场切换：只在首次渲染时用（整页本来就在 300ms 淡入里，看不出来） */
@@ -174,25 +202,29 @@ const srcsetOf = (path: string) =>
     }
   }
 
+  /** 只有定时模式需要起定时器；不轮换 / 每日 / 每次刷新都不起 */
   function startRotation(
     payload: { backgrounds: { id: string; path: string }[] },
-    seconds: number,
+    rotation: Rotation,
   ): void {
     window.clearInterval(rotationTimer);
-    if (seconds <= 0 || payload.backgrounds.length < 2) return;
+    rotationTimer = undefined;
+    if (rotation.kind !== "timer" || rotation.seconds <= 0) return;
+    if (payload.backgrounds.length < 2) return;
+
     rotationTimer = window.setInterval(() => {
       const current = imageOf(activeLayer)?.dataset.bgId ?? "";
       const index = payload.backgrounds.findIndex((entry) => entry.id === current);
       const next = payload.backgrounds[(index + 1) % payload.backgrounds.length];
       switchWithFade(payload, next.id);
-    }, seconds * 1000);
+    }, rotation.seconds * 1000);
   }
 
   function initBackdrop(): void {
     const payload = readPayload();
     if (!payload || payload.backgrounds.length === 0) return;
     showImmediately(payload, wantedId(payload));
-    startRotation(payload, intervalOf(payload));
+    startRotation(payload, rotationOf(payload));
   }
 
   // 站内换页后 DOM 被换掉，需要在 page-load 重新绑定；齿轮改了设置则即时响应
@@ -201,6 +233,6 @@ const srcsetOf = (path: string) =>
     const payload = readPayload();
     if (!payload) return;
     switchWithFade(payload, wantedId(payload));
-    startRotation(payload, intervalOf(payload));
+    startRotation(payload, rotationOf(payload));
   });
 </script>

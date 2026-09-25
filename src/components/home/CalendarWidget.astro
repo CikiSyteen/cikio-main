@@ -9,7 +9,10 @@ import WidgetCard from "./WidgetCard.astro";
  *
  * 服务端只渲染骨架（表头 + 空的网格占位 + 图例 + 详情区），网格由客户端脚本按
  * "访客本地当前月"绘制 —— 静态站点在构建期渲染日历时只会画出构建当月的日历，那是错的。
- * 网格给了固定 min-height 占位，所以客户端填充时不会产生布局位移。
+ *
+ * 尺寸恒定是这个组件的硬要求：卡片高度由 index.astro 固定，内部每一块也都给了
+ * 固定高度 —— 网格用 min-height 占位、详情区一次性占满两行。这样脚本没跑之前
+ * 与跑完之后尺寸完全一致，既不会跳布局，也不会出现"底下缺一块"的观感。
  *
  * 每格两行：上面是公历日，下面是农历 / 节假日状态。
  *  - 法定节假日：第一天显示节日名，其余显示「休」（红色）
@@ -57,7 +60,8 @@ const payload = JSON.stringify({ postsByDate, lunar, holidays });
   hrefLabel="归档"
   class={className}
 >
-  <div data-calendar class="flex flex-col gap-2">
+  <!-- h-full + min-h-0：卡片高度固定时，让下面的网格区吃掉多余空间（见 grid 的 flex-1） -->
+  <div data-calendar class="flex h-full min-h-0 flex-col gap-2">
     <div class="flex items-center justify-between gap-2">
       <button type="button" data-calendar-prev class="btn btn-ghost btn-xs" aria-label="上一个月">
         <Icon name="lucide:chevron-left" class="h-4 w-4" aria-hidden="true" />
@@ -72,8 +76,12 @@ const payload = JSON.stringify({ postsByDate, lunar, holidays });
       {WEEKDAY_LABELS.map((label) => <span>{label}</span>)}
     </div>
 
-    <!-- 固定高度占位（6 行 × h-9 + 5 个 gap），避免客户端绘制时产生布局位移 -->
-    <div data-calendar-grid class="grid min-h-[14.75rem] grid-cols-7 gap-1 text-center"></div>
+    <!--
+      固定高度占位（6 行 × h-9 + 5 个 gap）：客户端绘制前就把位置占住，不会跳布局。
+      flex-1 让它在卡片高度固定时吸收多余空间 —— 只写 min-h 的话，多出来的高度会
+      全堆到卡片底部，日期网格反而被顶在上面。
+    -->
+    <div data-calendar-grid class="grid min-h-[14.75rem] flex-1 grid-cols-7 gap-1 text-center"></div>
 
     <p class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[0.7rem] text-base-content/70">
       <span class="inline-flex items-center gap-1">
@@ -84,7 +92,17 @@ const payload = JSON.stringify({ postsByDate, lunar, holidays });
       <span class="text-info">班</span>
     </p>
 
-    <div data-calendar-detail class="min-h-[1.25rem] text-[0.7rem] leading-relaxed"></div>
+    <!--
+      固定两行高度，而不是原先的 min-h-[1.25rem]（一行）：
+      服务端渲染时这里是空的，脚本跑完会填上「本月暂无更新 · 最近一次：2025-05-31 更新 1 篇：…」，
+      通常正好两行。只占一行的话首屏先矮一块、数据到位再长高，既跳布局又像"缺了一块"。
+      点开某天看到更多条目时（可能超过两行）改为内部滚动，卡片的尺寸始终不变。
+    -->
+    <div
+      data-calendar-detail
+      class="h-[2.4rem] overflow-y-auto text-[0.7rem] leading-relaxed"
+    >
+    </div>
   </div>
 </WidgetCard>
 

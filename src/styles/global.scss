@@ -294,6 +294,37 @@ code {
   background-color: oklch(var(--b1) / 0.85);
 }
 
+// hero 文案的外描边（只在浅色模式下加）。
+//
+// 文案直接压在照片上，而这张壁纸中下部是大片高光沙滩与浪花 —— 深色文字遇到
+// 中间调的树影、海面时对比度会掉下来。原先靠 .home-hero-glow 那块柔光兜底，
+// 柔光按要求移除后改用文字描边：在字形外围补一圈与底色同色的亮边，把字从背景里"抠"出来。
+//
+// 为什么用多层 text-shadow 而不是 -webkit-text-stroke：
+// 后者是居中描边，且 paint-order 对 HTML 文本的支持并不一致 —— 在没有 paint-order
+// 的浏览器里，浅色描边会把笔画本身吃掉一半，12px 的小字会直接糊成一团。
+// text-shadow 只在字形之外叠加，笔画粗细与字形完全不变，大字号小字号都不失真。
+//
+// 只在浅色模式生效：暗色模式下正文本身是浅色，再加亮边等于把字洗掉。
+@mixin home-hero-outline($width) {
+  $negative: -$width;
+  text-shadow:
+    #{$negative} #{$negative} 0 oklch(var(--b1) / 0.85),
+    #{$width} #{$negative} 0 oklch(var(--b1) / 0.85),
+    #{$negative} #{$width} 0 oklch(var(--b1) / 0.85),
+    #{$width} #{$width} 0 oklch(var(--b1) / 0.85),
+    0 0 #{$width * 3} oklch(var(--b1) / 0.7);
+}
+
+[data-theme-type="light"] .home-hero-outline {
+  @include home-hero-outline(1px);
+}
+
+// 大标题笔画粗、字号大，1px 描边几乎被笔画吃掉，给到 2px 才有可见的轮廓
+[data-theme-type="light"] .home-hero-outline-title {
+  @include home-hero-outline(2px);
+}
+
 // hero 的次级按钮：浮在照片上时不能用 btn-ghost（完全透明会认不出是按钮）
 .home-btn-glass {
   border: 1px solid oklch(var(--b1) / 0.45);
@@ -350,6 +381,45 @@ code {
 // 其余状态（描边转主色、底色变实、投影加深）仍沿用 .home-tile:hover，手感与全站瓦片保持一致。
 .home-settings-toggle:hover {
   transform: scale(1.08);
+}
+
+// ==================== 首页设置弹窗 ====================
+//
+// 原生 <dialog> + showModal()：居中、遮罩、Esc 关闭、焦点收束都由浏览器负责，
+// 这里只重置默认外观、把遮罩定成深色薄纱，再补一条"居中放大"的入场动画。
+// 尺寸自己给死，居中交给 UA 的 margin: auto。
+.home-settings-dialog {
+  width: min(22rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100vh - 3rem);
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.home-settings-dialog::backdrop {
+  background-color: rgb(0 0 0 / 0.45);
+  // 刻意不叠 backdrop-filter：整屏模糊只服务于一个弹窗，代价不值
+  //（见本文件顶部关于移除 backdrop-blur 的记录），深色薄纱足够把注意力收进来。
+}
+
+// 入场动画挂在面板上、用 [open] 限定，所以每次打开都会重新跑一遍
+.home-settings-dialog[open] .home-settings-panel {
+  animation: home-settings-pop 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes home-settings-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 // 工具带上缘那条渐隐分隔线（62296d 的 .toolbelt-line，去掉霓虹发光）

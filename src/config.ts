@@ -3,6 +3,10 @@ import * as path from "node:path";
 import type { Config, HomeConfig, HomeHolidayMap } from "@interfaces/site";
 // js-yaml 5 起为纯命名导出（无 default export）
 import { load as loadYaml } from "js-yaml";
+// 必须用相对路径，不能用 @utils 别名：tailwind.config.mjs 会 import 本文件，
+// 而 Tailwind 是被 PostCSS 在 Node 侧加载的，那条链路上没有 Vite 的 tsconfig 别名解析，
+// 用别名会直接以 "Cannot find module '@utils/homeRotation'" 中断构建。
+import { normalizeRotation } from "./utils/homeRotation";
 
 // 配置文件路径
 const configPath = path.resolve("frosti.config.yaml");
@@ -105,14 +109,27 @@ export const HOME_BACKGROUND_DEFAULT =
   HOME_BACKGROUNDS[0]?.id ??
   "";
 
-/** 背景自动轮换间隔（秒），0 表示不轮换 */
-export const HOME_BACKGROUND_INTERVAL = homeConfig.background?.interval ?? 0;
+/**
+ * 背景的默认轮换方式。配置里可以写秒数（30 = 每 30 秒）、
+ * 也可以写 none / daily / refresh，解析统一交给 @utils/homeRotation。
+ * 背景的 0 按"不轮换"理解：它有明确的默认图与访客选中项，0 的语义确实是"不自动换"。
+ */
+export const HOME_BACKGROUND_MODE = normalizeRotation(
+  homeConfig.background?.interval,
+  "none",
+);
 
-/** 「随机一言」的内容池 */
+/** 「一言」的内容池 */
 export const HOME_QUOTES = homeConfig.quotes?.items ?? [];
 
-/** 「随机一言」默认轮换间隔（秒），0 表示不轮换 */
-export const HOME_QUOTE_INTERVAL = homeConfig.quotes?.interval ?? 0;
+/**
+ * 「一言」的默认轮换方式。这里的 0 按"每次刷新"理解：
+ * 改动前脚本每次进页面都会先随机一条，0 的实际行为就是每次刷新随机，只是文案误写成"不轮换"。
+ */
+export const HOME_QUOTE_MODE = normalizeRotation(
+  homeConfig.quotes?.interval,
+  "refresh",
+);
 
 function toDateKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");

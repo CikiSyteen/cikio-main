@@ -1,10 +1,10 @@
 ---
 import {
   HOME_BACKGROUND_DEFAULT,
-  HOME_BACKGROUND_INTERVAL,
+  HOME_BACKGROUND_MODE,
   HOME_BACKGROUNDS,
   HOME_HOLIDAYS,
-  HOME_QUOTE_INTERVAL,
+  HOME_QUOTE_MODE,
   HOME_QUOTES,
 } from "@config";
 import { getAllPosts, sortPostsByDate } from "@utils/blogUtils";
@@ -88,16 +88,16 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
     slot="overlay"
     backgrounds={HOME_BACKGROUNDS}
     defaultId={HOME_BACKGROUND_DEFAULT}
-    interval={HOME_BACKGROUND_INTERVAL}
+    mode={HOME_BACKGROUND_MODE}
   />
 
-  <!-- 右上角齿轮：改背景图与轮换间隔，只写 localStorage，不动服务端 -->
+  <!-- 右上角齿轮：改背景图与两条轮换方式，只写 localStorage，不动服务端 -->
   <HomeSettings
     slot="overlay"
     backgrounds={HOME_BACKGROUNDS}
     defaultBackground={HOME_BACKGROUND_DEFAULT}
-    backgroundInterval={HOME_BACKGROUND_INTERVAL}
-    quoteInterval={HOME_QUOTE_INTERVAL}
+    backgroundMode={HOME_BACKGROUND_MODE}
+    quoteMode={HOME_QUOTE_MODE}
   />
 
   <!-- 整块限宽 68rem 居中，1440 屏两侧各留约 11rem 的风景 -->
@@ -120,12 +120,13 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
       <!--
         右栏：小卡片群 —— 左列「一言」在上、「日期与时间」在下，右列日历跨两行。
 
-        尺寸是固定的，不再随邻居自适应：栅格默认的 align-items: stretch 只会把外层
-        .home-enter 外壳撑到行高，卡片按自己的固定高度贴在行首，于是无论一言轮到
-        几句、天气有没有取到数据，两块卡的尺寸都不动。
-        两个固定高度加上 sm:gap-5（1.25rem）之和，刻意对齐日历在 lg 下的实测高度
-        （10.5 + 1.25 + 16 = 27.75rem = 444px），所以左列底边仍与日历底边齐平。
-        日历若因某月更新条目变多而长高，这里会差出几十像素，届时按比例调这两个值即可。
+        三张卡都是固定尺寸，不再随邻居或内容自适应：栅格默认的 align-items: stretch
+        只会把外层 .home-enter 外壳撑到行高，卡片按自己的固定高度贴在行首，于是无论
+        一言轮到几句、天气有没有取到数据、日历有没有算出"最近一次更新"，尺寸都不动。
+
+        日历定在 27.75rem（444px），左列两个高度加上 sm:gap-5（1.25rem）之和刻意与之相等
+        （10.5 + 1.25 + 16 = 27.75rem），所以左列底边与日历底边在任何宽度下都齐平 ——
+        之前日历是被内容撑高的，1024 那档会因脚注多折一行而差出 9px，现在不会了。
 
         每个小组件都套一层 .home-enter 外壳 —— 错峰动画靠 nth-child 定位，
         而组件自己会往同级输出 <script>（Astro 把内联的模块脚本留在原位置），
@@ -136,7 +137,7 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
         <div class="home-enter sm:col-start-1 sm:row-start-1">
           <RandomQuoteWidget
             quotes={HOME_QUOTES}
-            interval={HOME_QUOTE_INTERVAL}
+            mode={HOME_QUOTE_MODE}
             class="sm:h-[10.5rem]"
           />
         </div>
@@ -145,6 +146,7 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
             postsByDate={postsByDate}
             lunar={lunarTable}
             holidays={HOME_HOLIDAYS}
+            class="sm:h-[27.75rem]"
           />
         </div>
         <div class="home-enter sm:col-start-1 sm:row-start-2">

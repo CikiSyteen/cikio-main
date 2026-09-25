@@ -70,10 +70,10 @@ const intro = USER_BIO || SITE_DESCRIPTION;
       class="h-16 w-16 shrink-0 rounded-2xl object-cover shadow-xl ring-4 ring-base-100/60 sm:h-20 sm:w-20"
     />
     <div class="flex min-w-0 flex-col gap-0.5">
-      <p class="text-xs text-base-content/80 sm:text-sm">你好，欢迎来到</p>
+      <p class="home-hero-outline text-xs text-base-content/80 sm:text-sm">你好，欢迎来到</p>
       <h1
         id="home-hero-title"
-        class="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+        class="home-hero-outline-title text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
       >
         {SITE_TITLE}
       </h1>
@@ -83,10 +83,12 @@ const intro = USER_BIO || SITE_DESCRIPTION;
   <!--
     文字直接压在照片上，透明度不敢压低：中小字号只有靠足量的 base-content
     才撑得住对比度（大字号标题反而有余量）。
+    浅色模式下另有一圈外描边（.home-hero-outline*，定义在 global.scss），
+    用来补上柔光移除后失去的对比度余量。
   -->
   <p
     class:list={[
-      "max-w-xl text-balance text-sm leading-relaxed text-base-content/90 sm:text-base",
+      "home-hero-outline max-w-xl text-balance text-sm leading-relaxed text-base-content/90 sm:text-base",
       isStart && "lg:max-w-md",
     ]}
   >
