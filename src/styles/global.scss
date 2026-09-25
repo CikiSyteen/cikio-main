@@ -320,6 +320,38 @@ code {
   background-color: oklch(var(--b1) / 0.78);
 }
 
+// 底部工具带的瓦片（站点导航的一排入口 + 次级胶囊）。
+// 与 .home-widget 同一套玻璃配方，只是尺寸更小、hover 是"抬起"而不是变色。
+.home-tile {
+  border: 1px solid oklch(var(--b3) / 0.55);
+  background-color: oklch(var(--b1) / 0.82);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
+}
+
+[data-theme-type="dark"] .home-tile {
+  background-color: oklch(var(--b1) / 0.92);
+}
+
+// 必须带 :hover 显式声明底色：daisyUI 的 .btn-ghost:hover 是类 + 伪类（0,2,0），
+// 优先级高于单独的 .home-tile，不覆盖的话次级胶囊一悬停就变透明/变黑。
+.home-tile:hover {
+  transform: translateY(-4px);
+  border-color: oklch(var(--p) / 0.45);
+  background-color: oklch(var(--b1) / 0.95);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.16);
+}
+
+// 工具带上缘那条渐隐分隔线（62296d 的 .toolbelt-line，去掉霓虹发光）
+.home-divider {
+  height: 1px;
+  width: 100%;
+  background-image: linear-gradient(to right, transparent, oklch(var(--p) / 0.45), transparent);
+}
+
 // ==================== 首页小组件 ====================
 //
 // .home-widget = 卡片底板；.home-enter = 入场动画。两者分开，
@@ -347,18 +379,28 @@ code {
   animation: 420ms fadeInUp cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-// 延迟按栅格里的 DOM 顺序递增（.home-enter 就是栅格的直接子元素），
+// 延迟按容器内的 DOM 顺序递增（.home-enter 必须是容器的直接子元素），
 // 所以顺序由 index.astro 的排列决定，不需要在组件里传 index。
-.home-widget-grid > .home-enter:nth-child(1) {
-  animation-delay: 90ms;
+// .home-stagger 只是"错峰作用域"的钩子，左右两栏各自套一份。
+.home-stagger > .home-enter:nth-child(1) {
+  animation-delay: 60ms;
 }
 
-.home-widget-grid > .home-enter:nth-child(2) {
-  animation-delay: 170ms;
+.home-stagger > .home-enter:nth-child(2) {
+  animation-delay: 140ms;
 }
 
-.home-widget-grid > .home-enter:nth-child(3) {
-  animation-delay: 250ms;
+.home-stagger > .home-enter:nth-child(3) {
+  animation-delay: 220ms;
+}
+
+.home-stagger > .home-enter:nth-child(4) {
+  animation-delay: 300ms;
+}
+
+// 底部工具带与页脚排在所有卡片之后入场
+.home-enter-late {
+  animation-delay: 320ms;
 }
 
 // ==================== 站内换页过渡 ====================

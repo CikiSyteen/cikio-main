@@ -5,6 +5,7 @@ import ClockWeatherWidget from "@/components/home/ClockWeatherWidget.astro";
 import HomeBackdrop from "@/components/home/HomeBackdrop.astro";
 import HomeFooter from "@/components/home/HomeFooter.astro";
 import HomeHero from "@/components/home/HomeHero.astro";
+import HomeStats from "@/components/home/HomeStats.astro";
 import LatestPostsWidget from "@/components/home/LatestPostsWidget.astro";
 import SiteNavWidget from "@/components/home/SiteNavWidget.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
@@ -20,10 +21,13 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
  * SEO、亮暗主题、链接预取、视图过渡照旧继承，因此从首页点进 /blog
  * 只有内容区参与过渡，不会整页重建。
  *
- * 版式刻意"收窄 + 留白"：整块内容限宽 64rem 居中，纵向分四段
- * （身份区 → 小组件带 → 站点导航 → 页脚）。小组件带是三列不等宽
- * （0.9 : 1.3 : 1）且 items-start，卡片各按内容高度自然错落；
- * 站点导航再收一档到 48rem。壁纸因此始终在两侧与段落之间露出成片的风景。
+ * 版式取两个参考页的结构，而不是把卡片一列列堆满：
+ *  - 双栏主体（对齐 c91d8f）：左栏身份（0.85）· 右栏小组件群（1.15），
+ *    左栏文字靠左并垂直居中于更高的右栏旁，中间留出 2.5rem 的间隙给壁纸；
+ *    右栏内部是 2×2 的 bento——最新文章占满一行，日期时间与更新日历并排。
+ *  - 底部工具带（对齐 62296d）：站点导航不复用卡片外壳，改成"渐隐分隔线 +
+ *    一排等宽玻璃瓦片 + 一行次级胶囊"，横贯内容区、只占一行高度。
+ * 整块内容限宽 68rem 居中，1440 屏两侧各留约 11rem 的风景。
  */
 
 const allPosts = sortPostsByDate(await getAllPosts());
@@ -51,6 +55,12 @@ for (const post of allPosts) {
   bucket.push({ title: post.data.title, url: `/blog/${post.id}` });
   postsByDate[key] = bucket;
 }
+
+// 左栏"站点数据"用；分类与标签要跨文章去重，所以用 Set 收一遍
+const categoryCount = new Set(
+  allPosts.flatMap((post) => post.data.categories ?? []),
+).size;
+const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
 ---
 
 <BaseLayout title="首页" hero>
@@ -58,42 +68,54 @@ for (const post of allPosts) {
   <HomeBackdrop slot="backdrop" />
 
   <!--
-    hero 舞台：整块收窄到 64rem 居中，在壁纸两侧留出成片的风景；
-    纵向用 gap-10 / lg:gap-14 分段（身份区 → 小组件带 → 导航 → 页脚），
-    让每一段之间都有清晰的呼吸，而不是纵向堆满。
+    hero 舞台：整块限宽 68rem 居中（1440 屏两侧各留约 11rem 的风景），
+    纵向分三段（双栏主体 → 底部工具带 → 页脚），段间 gap-10 / lg:gap-12。
   -->
-  <div class="mx-auto flex w-full max-w-5xl flex-col items-center gap-10 px-4 py-8 lg:gap-14 lg:py-12">
-    <!-- 1. 身份区：无卡片，直接压在壁纸上，居中最重 -->
-    <HomeHero />
-
+  <div class="mx-auto flex w-full max-w-[68rem] flex-col gap-10 px-4 py-8 lg:gap-12 lg:py-10">
     <!--
-      2. 小组件带：三列**不等宽**（0.9 : 1.3 : 1），且用 items-start 让每张卡
-         保持自己的内容高度、自然错落 —— 强行拉齐等高反而会出现大片留白。
-      窄屏退回单列/双列，卡片仍是一张张独立的面板，不改成通栏。
-
-      每个小组件都套一层 .home-enter 外壳：错峰动画靠 nth-child 定位，
-      而组件自己会往同级输出 <script>（Astro 把内联的模块脚本留在原位置），
-      不套壳的话 .home-widget-grid 的直接子元素就不再是"3 张卡"，
-      序号会被脚本元素打乱，错峰顺序随机。外壳同时也承接栅格跨列类。
+      1. 双栏主体：左身份 / 右小组件群（对齐 c91d8f 的 0.9 : 1.1 不对称双栏）。
+         - 左栏不再居中，文字靠左；右栏高得多，故用 items-center 让左栏在
+           垂直方向居中，形成参考页那种"左侧一块品牌、右侧一片仪表"的关系。
+         - 两侧列宽比 0.85 : 1.15，中间留出 ga-10 的间隙让壁纸透上来。
     -->
-    <div
-      class="home-widget-grid grid w-full grid-cols-1 items-start gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-6"
-    >
-      <div class="home-enter">
-        <ClockWeatherWidget />
+    <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-10">
+      <!--
+        左栏：身份区 + 站点数据。
+        home-stagger 是错峰动画的作用域钩子：延迟按直接子元素的 DOM 顺序递增。
+        站点数据不只是信息，也用来把左栏撑到与右栏相近的高度 ——
+        右栏有三张卡，左栏只有一块身份区的话会明显左轻右重。
+      -->
+      <div class="home-stagger flex flex-col gap-6 lg:flex-[0.85]">
+        <HomeHero align="start" />
+        <HomeStats posts={allPosts.length} categories={categoryCount} tags={tagCount} />
       </div>
-      <div class="home-enter md:col-span-2 lg:col-span-1">
-        <LatestPostsWidget posts={latestPosts} />
-      </div>
-      <div class="home-enter md:col-span-2 lg:col-span-1">
-        <CalendarWidget postsByDate={postsByDate} />
+
+      <!--
+        右栏：最新文章占满一行，下方日期时间与更新日历并排。
+        每个小组件套一层 .home-enter 外壳 —— 错峰动画靠 nth-child 定位，
+        而组件自己会往同级输出 <script>（Astro 把内联的模块脚本留在原位置），
+        不套壳的话格子的直接子元素就不再是"3 张卡"，
+        序号会被脚本元素打乱，错峰顺序随机。外壳同时承接栅格跨列类。
+      -->
+      <div
+        class="home-stagger grid w-full grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 lg:flex-[1.15]"
+      >
+        <div class="home-enter sm:col-span-2">
+          <LatestPostsWidget posts={latestPosts} />
+        </div>
+        <div class="home-enter">
+          <ClockWeatherWidget />
+        </div>
+        <div class="home-enter">
+          <CalendarWidget postsByDate={postsByDate} />
+        </div>
       </div>
     </div>
 
-    <!-- 3. 站点导航：再收一档（48rem）的居中面板，比小组件带更窄 -->
-    <SiteNavWidget class="w-full max-w-3xl" />
+    <!-- 2. 底部工具带：横贯内容区的一排入口瓦片（对齐 62296d 的 lower-toolbelt-layer） -->
+    <SiteNavWidget class="home-enter-late" />
 
-    <!-- 4. 轻量页脚：一条居中的玻璃胶囊 -->
-    <HomeFooter />
+    <!-- 3. 轻量页脚：一条居中的玻璃胶囊 -->
+    <HomeFooter class="home-enter-late" />
   </div>
 </BaseLayout>

@@ -6,25 +6,33 @@ import {
   USER_AVATAR,
   USER_BIO,
   USER_NAME,
+  USER_SIDEBAR_SOCIAL_ICONS,
 } from "@config";
 import { Icon } from "astro-icon/components";
 
 /**
  * 首页首屏的身份区。
  *
- * 刻意**不套卡片**：hero 版式里这一块直接压在壁纸上，四周留白，
- * 视觉重心落在头像与站名上；后面才是收窄的小组件带。
+ * 刻意**不套卡片**：hero 版式里这一块直接压在壁纸上，视觉重心落在头像与站名上。
  * 可读性交给 global.scss 的 .home-hero-glow —— 一块居中的径向柔光，
  * 既不是卡片也不算遮罩，亮色下把画面洗白、暗色下压暗，壁纸依然完整可见。
+ *
+ * align="start" 用于双栏版式（左身份 / 右小组件群，参考 c91d8f 的不对称双栏）：
+ * lg 起文字靠左、块内元素也靠左；窄屏仍退回居中的单栏堆叠，避免左侧留一大片空白。
  *
  * 它同时是页面唯一的 h1（其余小组件标题都是 h2），并承载通往博客的主入口。
  */
 
 export interface HomeHeroProps {
+  /** lg 及以上的对齐方式：双栏版式用 start，单栏居中版式用 center */
+  align?: "center" | "start";
   class?: string;
 }
 
-const { class: className = "" } = Astro.props as HomeHeroProps;
+const { align = "center", class: className = "" } =
+  Astro.props as HomeHeroProps;
+
+const isStart = align === "start";
 
 // bio 留空时退回站点描述，避免出现空段落
 const intro = USER_BIO || SITE_DESCRIPTION;
@@ -34,7 +42,8 @@ const intro = USER_BIO || SITE_DESCRIPTION;
   aria-labelledby="home-hero-title"
   class:list={[
     // 只有动画类、没有 home-widget：这块刻意不带卡片底板，直接压在壁纸上
-    "home-enter relative isolate flex flex-col items-center gap-5 text-center sm:gap-6",
+    "home-enter relative isolate flex flex-col gap-5 sm:gap-6",
+    isStart ? "items-center text-center lg:items-start lg:text-left" : "items-center text-center",
     className,
   ]}
 >
@@ -54,7 +63,7 @@ const intro = USER_BIO || SITE_DESCRIPTION;
     文字直接压在照片上，透明度不敢压低：中小字号只有靠足量的 base-content
     才撑得住对比度（大字号标题反而有余量）。
   -->
-  <div class="flex flex-col items-center gap-2">
+  <div class:list={["flex flex-col gap-2", isStart && "items-center lg:items-start"]}>
     <p class="text-sm text-base-content/80">你好，欢迎来到</p>
     <h1
       id="home-hero-title"
@@ -62,12 +71,23 @@ const intro = USER_BIO || SITE_DESCRIPTION;
     >
       {SITE_TITLE}
     </h1>
-    <p class="mt-2 max-w-xl text-sm leading-relaxed text-base-content/90 sm:text-base">
+    <p
+      class:list={[
+        // text-balance：中文简介在窄栏里换行时不会把最后两三个字单独甩到第二行
+        "mt-2 max-w-xl text-balance text-sm leading-relaxed text-base-content/90 sm:text-base",
+        isStart && "lg:max-w-md",
+      ]}
+    >
       {intro}
     </p>
   </div>
 
-  <div class="mt-1 flex flex-wrap items-center justify-center gap-3">
+  <div
+    class:list={[
+      "mt-1 flex flex-wrap items-center gap-3",
+      isStart ? "justify-center lg:justify-start" : "justify-center",
+    ]}
+  >
     <a href="/blog" class="btn btn-primary gap-2">
       <Icon name="lucide:book-open" class="h-4 w-4" aria-hidden="true" />
       <span>进入博客</span>
@@ -79,5 +99,27 @@ const intro = USER_BIO || SITE_DESCRIPTION;
       <Icon name="lucide:user" class="h-4 w-4" aria-hidden="true" />
       <span>关于我</span>
     </a>
+  </div>
+
+  <!--
+    社交入口放在身份区（对齐 c91d8f 把 .social-icons 放进左栏的做法），
+    这样底部的英雄页脚就只剩一行版权，整页不需要两处重复的社交按钮。
+  -->
+  <div class="mt-1 flex flex-wrap items-center gap-2">
+    {
+      USER_SIDEBAR_SOCIAL_ICONS.map((item) => (
+        <div class="tooltip tooltip-bottom" data-tip={item.title}>
+          <a
+            href={item.href}
+            aria-label={item.ariaLabel}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="home-tile flex h-10 w-10 items-center justify-center rounded-xl text-base-content/75 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          >
+            <Icon name={item.svg} class="h-5 w-5" aria-hidden="true" />
+          </a>
+        </div>
+      ))
+    }
   </div>
 </section>

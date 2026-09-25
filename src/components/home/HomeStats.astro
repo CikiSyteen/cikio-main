@@ -1,0 +1,45 @@
+---
+import { Icon } from "astro-icon/components";
+
+/**
+ * 站点数据（文章 / 分类 / 标签）。
+ *
+ * 放在左栏身份区下方，除了给访客一个"这里有多少东西"的观感，
+ * 也把左栏的高度撑起来 —— 右栏是"最新文章 + 日期时间 + 更新日历"三张卡，
+ * 左栏只有一块身份区时会比右栏矮一大截，整块版式会显得左轻右重。
+ *
+ * 数字由 index.astro 在构建期算好传入，组件本身不碰内容集合。
+ */
+
+export interface HomeStatsProps {
+  posts: number;
+  categories: number;
+  tags: number;
+  class?: string;
+}
+
+const {
+  posts,
+  categories,
+  tags,
+  class: className = "",
+} = Astro.props as HomeStatsProps;
+
+const items = [
+  { label: "篇文章", value: posts, icon: "lucide:file-text" },
+  { label: "个分类", value: categories, icon: "lucide:folder" },
+  { label: "个标签", value: tags, icon: "lucide:tag" },
+];
+---
+
+<ul class:list={["home-enter grid grid-cols-3 gap-3", className]}>
+  {
+    items.map((item) => (
+      <li class="home-tile flex flex-col items-center gap-1 rounded-xl px-3 py-3.5 text-center">
+        <Icon name={item.icon} class="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <span class="font-mono text-xl font-bold leading-none tabular-nums">{item.value}</span>
+        <span class="text-[0.7rem] text-base-content/75">{item.label}</span>
+      </li>
+    ))
+  }
+</ul>

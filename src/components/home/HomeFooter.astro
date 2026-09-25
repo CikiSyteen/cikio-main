@@ -1,53 +1,59 @@
 ---
-import { USER_FOOTER_SOCIAL_ICONS, USER_NAME, USER_SITE } from "@config";
+import { USER_NAME, USER_SITE } from "@config";
 import { Icon } from "astro-icon/components";
 
 /**
  * hero 页面专用的轻量页脚。
  *
  * 站点自带的 Footer.astro 是 p-10 的通栏卡片，放在沉浸式 hero 里会把壁纸
- * 从底部整条切掉。这里换成一条居中的玻璃胶囊：社交图标 + 一行版权，
- * 数据仍取自同一份配置（user.footer.social），加 RSS 与站点页脚保持一致。
+ * 从底部整条切掉；参考页（c91d8f）的做法是"只剩一行版权"。
+ * 这里做成一条居中的玻璃细胶囊：一行版权 + RSS。
+ *
+ * 社交图标不在这里重复一份 —— 它们已经放在左栏的身份区（见 HomeHero）。
  */
-const socials = [
-  ...USER_FOOTER_SOCIAL_ICONS,
-  {
-    href: "/rss.xml",
-    ariaLabel: "RSS Feed",
-    title: "RSS Feed",
-    svg: "ri:rss-line",
-  },
-];
+
+export interface HomeFooterProps {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props as HomeFooterProps;
 ---
 
-<footer class="home-enter mx-auto w-fit max-w-full">
+<footer class:list={["home-enter mx-auto w-fit max-w-full", className]}>
   <div
-    class="home-footer-bar flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-2xl border border-base-300/40 px-5 py-3 sm:gap-x-6"
+    class="home-footer-bar flex items-center gap-3 rounded-full border border-base-300/40 px-5 py-2"
   >
-    <div class="flex items-center gap-1">
-      {
-        socials.map((icon) => (
-          <div class="tooltip tooltip-top" data-tip={icon.title}>
-            <a
-              href={icon.href}
-              aria-label={icon.ariaLabel}
-              class="flex h-9 w-9 items-center justify-center rounded-lg text-base-content/75 transition-colors duration-200 hover:bg-base-200/70 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-            >
-              <Icon name={icon.svg} class="h-5 w-5" aria-hidden="true" />
-            </a>
-          </div>
-        ))
-      }
-    </div>
-
-    <p class="text-xs text-base-content/75">
-      © {new Date().getFullYear()} <a href={USER_SITE} class="link link-hover" target="_blank" rel="noopener noreferrer">{USER_NAME}</a>
-      · Powered by <a
+    <!--
+      用 flex + gap 而不是靠文本里的空格分隔：
+      @playform/compress 会把元素之间的换行空白折叠掉，
+      靠空格排版会压成「© 2026CikiSyteen·Powered by Frosti」。
+    -->
+    <div class="flex flex-wrap items-center gap-x-1.5 text-xs text-base-content/75">
+      <span>© {new Date().getFullYear()}</span>
+      <a
+        href={USER_SITE}
+        class="link link-hover"
+        target="_blank"
+        rel="noopener noreferrer">{USER_NAME}</a
+      >
+      <span aria-hidden="true">·</span>
+      <span>Powered by</span>
+      <a
         href="https://github.com/EveSunMaple/Frosti"
         class="link link-hover"
         target="_blank"
         rel="noopener noreferrer">Frosti</a
       >
-    </p>
+    </div>
+
+    <div class="tooltip tooltip-top" data-tip="RSS Feed">
+      <a
+        href="/rss.xml"
+        aria-label="RSS Feed"
+        class="flex items-center justify-center rounded-lg text-base-content/70 transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      >
+        <Icon name="ri:rss-line" class="h-4 w-4" aria-hidden="true" />
+      </a>
+    </div>
   </div>
 </footer>
