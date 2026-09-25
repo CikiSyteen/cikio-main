@@ -482,7 +482,13 @@ async function fetchNotoSansSCFonts(): Promise<FontCache> {
       fontCache = result;
       return result;
     } catch (err) {
-      console.error("[og] font fetch failed", err);
+      // 字体拉取失败是「非致命」的：下面会降级成占位 OG 图，构建不该因此报错。
+      // 本地/离线构建拉不到 Google Fonts 时常见；可设置 OG_FONT_PATH 指向本地
+      // Noto Sans SC 字体（TTF/OTF/WOFF）来生成带文字的真实 OG 图。
+      console.warn(
+        "[og] 字体拉取失败，OG 图降级为占位图（设置 OG_FONT_PATH 指向本地 Noto Sans SC 字体可生成真实 OG 图）",
+        err,
+      );
       const result = { regular: null, bold: null };
       fontCache = result;
       return result;
@@ -524,6 +530,20 @@ export async function GET({
       : undefined;
     const template = buildOgTemplate({ post, avatarBase64, qrElement });
     const fonts = buildFonts(fontRegular, fontBold);
+
+    // 字体没拿到（本地/离线构建拉不到 Google Fonts）就别喂空数组给 satori ——
+    // 那会抛 "No fonts are loaded" 并连带打出 "image generation failed"。
+    // 直接出占位图：构建终端不再有报错，线上（能拉到字体）则走下面的真实渲染。
+    if (fonts.length === 0) {
+      const png = await generateFallbackPng();
+      return new Response(new Uint8Array(png), {
+        headers: {
+          "Content-Type": "image/png",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+    }
+
     const png = await generateOgPng({ template, fonts });
 
     return new Response(new Uint8Array(png), {
