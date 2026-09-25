@@ -3,27 +3,32 @@ import { getAllPosts, sortPostsByDate } from "@utils/blogUtils";
 import CalendarWidget from "@/components/home/CalendarWidget.astro";
 import ClockWeatherWidget from "@/components/home/ClockWeatherWidget.astro";
 import HomeBackdrop from "@/components/home/HomeBackdrop.astro";
+import HomeFooter from "@/components/home/HomeFooter.astro";
 import HomeHero from "@/components/home/HomeHero.astro";
 import LatestPostsWidget from "@/components/home/LatestPostsWidget.astro";
 import SiteNavWidget from "@/components/home/SiteNavWidget.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 
 /**
- * 首页 = 风景壁纸 + 小组件面板。
+ * 首页 = 全屏风景壁纸 + hero 式小组件舞台。
  *
- * 设计上与站内其余页面共用 BaseLayout，只多传一个 hideSidebar：
- * 首页需要一整行来铺小组件网格，而侧栏里的 Profile / 分类 / 标签 / 目录
- * 会和这里的「站点导航」「最新文章」重复，所以首页收起侧栏。
- * 顶部导航、页脚、亮暗主题、链接预取、视图过渡全部照旧继承，
- * 因此从首页点进 /blog 时只有内容区参与过渡，不会整页重建。
+ * 与站内其余页面共用 BaseLayout，多传一个 hero：
+ *  - 隐含收起侧栏（侧栏的分类 / 标签 / 菜单与本页的「站点导航」「最新文章」重复）
+ *  - 不渲染通栏的站点页脚，改用本页自带的轻量胶囊页脚
+ *  - 在 body 上打 .hero-page，global.scss 据此把顶部导航从通栏白条
+ *    改写成浮在壁纸上的居中胶囊
+ * SEO、亮暗主题、链接预取、视图过渡照旧继承，因此从首页点进 /blog
+ * 只有内容区参与过渡，不会整页重建。
  *
- * 栅格（lg 三列）：Hero 满行 → 最新文章满行 → 日期时间 / 更新日历 / 站点导航 各占一列。
- * 这样三张"工具型"卡片天然同高、高度也接近，不会出现某张被强行拉长后大片留白；
- * md 两列时逐行是 2 / 2 / 1+1 / 2，同样整除，不留半行空洞。
+ * 版式刻意"收窄 + 留白"：整块内容限宽 64rem 居中，纵向分四段
+ * （身份区 → 小组件带 → 站点导航 → 页脚）。小组件带是三列不等宽
+ * （0.9 : 1.3 : 1）且 items-start，卡片各按内容高度自然错落；
+ * 站点导航再收一档到 48rem。壁纸因此始终在两侧与段落之间露出成片的风景。
  */
 
 const allPosts = sortPostsByDate(await getAllPosts());
-const latestPosts = allPosts.slice(0, 5).map((post) => ({
+// 取 4 篇：三列不等宽的版式里这张卡是最宽的一列，5 篇会把卡片拉得比同排高出一大截
+const latestPosts = allPosts.slice(0, 4).map((post) => ({
   id: post.id,
   title: post.data.title,
   description: post.data.description,
@@ -48,14 +53,47 @@ for (const post of allPosts) {
 }
 ---
 
-<BaseLayout title="首页" hideSidebar>
-  <HomeBackdrop />
+<BaseLayout title="首页" hero>
+  <!-- 走 body 级的 backdrop 插槽：全屏固定层不能放进内容区（见 BaseLayout 的说明） -->
+  <HomeBackdrop slot="backdrop" />
 
-  <div class="home-widget-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-    <HomeHero class="md:col-span-2 lg:col-span-3" />
-    <LatestPostsWidget posts={latestPosts} class="md:col-span-2 lg:col-span-3" />
-    <ClockWeatherWidget class="md:col-span-1" />
-    <CalendarWidget postsByDate={postsByDate} class="md:col-span-1" />
-    <SiteNavWidget class="md:col-span-2 lg:col-span-1" />
+  <!--
+    hero 舞台：整块收窄到 64rem 居中，在壁纸两侧留出成片的风景；
+    纵向用 gap-10 / lg:gap-14 分段（身份区 → 小组件带 → 导航 → 页脚），
+    让每一段之间都有清晰的呼吸，而不是纵向堆满。
+  -->
+  <div class="mx-auto flex w-full max-w-5xl flex-col items-center gap-10 px-4 py-8 lg:gap-14 lg:py-12">
+    <!-- 1. 身份区：无卡片，直接压在壁纸上，居中最重 -->
+    <HomeHero />
+
+    <!--
+      2. 小组件带：三列**不等宽**（0.9 : 1.3 : 1），且用 items-start 让每张卡
+         保持自己的内容高度、自然错落 —— 强行拉齐等高反而会出现大片留白。
+      窄屏退回单列/双列，卡片仍是一张张独立的面板，不改成通栏。
+
+      每个小组件都套一层 .home-enter 外壳：错峰动画靠 nth-child 定位，
+      而组件自己会往同级输出 <script>（Astro 把内联的模块脚本留在原位置），
+      不套壳的话 .home-widget-grid 的直接子元素就不再是"3 张卡"，
+      序号会被脚本元素打乱，错峰顺序随机。外壳同时也承接栅格跨列类。
+    -->
+    <div
+      class="home-widget-grid grid w-full grid-cols-1 items-start gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-6"
+    >
+      <div class="home-enter">
+        <ClockWeatherWidget />
+      </div>
+      <div class="home-enter md:col-span-2 lg:col-span-1">
+        <LatestPostsWidget posts={latestPosts} />
+      </div>
+      <div class="home-enter md:col-span-2 lg:col-span-1">
+        <CalendarWidget postsByDate={postsByDate} />
+      </div>
+    </div>
+
+    <!-- 3. 站点导航：再收一档（48rem）的居中面板，比小组件带更窄 -->
+    <SiteNavWidget class="w-full max-w-3xl" />
+
+    <!-- 4. 轻量页脚：一条居中的玻璃胶囊 -->
+    <HomeFooter />
   </div>
 </BaseLayout>

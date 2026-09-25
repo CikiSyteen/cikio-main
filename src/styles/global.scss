@@ -196,7 +196,7 @@ code {
 .home-backdrop-veil {
   position: absolute;
   inset: 0;
-  background-color: oklch(var(--b1) / 0.08);
+  background-color: oklch(var(--b1) / 0.06);
 }
 
 // 暗色主题：换成深色并大幅加重。这是这张壁纸最关键的适配 ——
@@ -204,82 +204,161 @@ code {
 // 这里必须按 data-theme-type 分支：项目没有配 darkMode，Tailwind 的 dark: 走的是
 // prefers-color-scheme，与站内「手动 + auto」的三态主题不同源，用它会错配。
 [data-theme-type="dark"] .home-backdrop-veil {
-  background-color: oklch(var(--b1) / 0.62);
+  background-color: oklch(var(--b1) / 0.6);
 }
 
-// 上下两端各收一条渐变到主题底色，让顶部融进导航栏、底部融进页脚，
-// 中间整段完整透出风景（早先用的是整屏 from-via-to，结果中间也被稀释掉了）。
-.home-backdrop-top,
-.home-backdrop-bottom {
+// ==================== 首页 hero 版式 ====================
+//
+// 首页是沉浸式 hero：顶部导航若保持"通栏白条"会把壁纸横向切断，
+// 所以 hero 页面把它改写成浮在画面上的居中胶囊（半透明 + 磨砂）。
+// 用 body 上的 .hero-page 作用域，站内其余页面的导航外观完全不变。
+.hero-page .desktop-navbar-shell {
+  padding-top: 1rem;
+}
+
+.hero-page .desktop-navbar-bar {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  height: 4rem;
+  gap: 0.25rem;
+  justify-content: center;
+  padding-inline: 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid oklch(var(--b1) / 0.35);
+  background-color: oklch(var(--b1) / 0.7);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
+  // 整站只有这一处用 backdrop-filter：它是浮在照片上的单个小元素，
+  // 模糊确实有效果，且随导航一起滚走，不会造成滚动期反复重合成
+  // （global.scss 里移除 backdrop-blur 的那条记录针对的是包住整页的纯色容器）。
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme-type="dark"] .hero-page .desktop-navbar-bar {
+  background-color: oklch(var(--b1) / 0.82);
+}
+
+// 胶囊要紧凑，把菜单项与搜索框的内边距收紧（通栏版式的 px-5 / w-56 在胶囊里太撑）
+.hero-page .desktop-navbar-bar > a:first-child {
+  padding-inline: 0.75rem;
+}
+
+.hero-page .desktop-navbar-bar nav .btn {
+  padding-inline: 0.75rem;
+}
+
+.hero-page .desktop-navbar-bar #navbar-search input {
+  width: 9rem;
+}
+
+@media (min-width: 1280px) {
+  .hero-page .desktop-navbar-bar #navbar-search input {
+    width: 11rem;
+  }
+}
+
+// 移动端的固定导航同样改成悬浮胶囊（原先是通栏白条）
+.hero-page #navbar {
+  left: 0.5rem;
+  right: 0.5rem;
+  width: auto;
+  border-radius: 1rem;
+  border: 1px solid oklch(var(--b1) / 0.35);
+  background-color: oklch(var(--b1) / 0.75);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme-type="dark"] .hero-page #navbar {
+  background-color: oklch(var(--b1) / 0.85);
+}
+
+// hero 文案脚下的柔光：一块居中的径向渐变，不是卡片也不是通栏遮罩。
+// 它让"直接压在照片上"的标题与简介在亮色（洗白）和暗色（压暗）下都够对比度，
+// 同时保留壁纸的完整可见性。
+.home-hero-glow {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 7rem;
+  z-index: -1;
+  top: -3rem;
+  bottom: -3rem;
+  left: 50%;
+  width: min(48rem, 130%);
+  transform: translateX(-50%);
+  pointer-events: none;
+  background-image: radial-gradient(
+    closest-side,
+    oklch(var(--b1) / 0.82),
+    oklch(var(--b1) / 0.5) 55%,
+    transparent
+  );
 }
 
-.home-backdrop-top {
-  top: 0;
-  background-image: linear-gradient(to bottom, oklch(var(--b1) / 0.9), transparent);
+// hero 的次级按钮：浮在照片上时不能用 btn-ghost（完全透明会认不出是按钮）
+.home-btn-glass {
+  border: 1px solid oklch(var(--b1) / 0.45);
+  background-color: oklch(var(--b1) / 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.home-backdrop-bottom {
-  bottom: 0;
-  background-image: linear-gradient(to top, oklch(var(--b1) / 0.9), transparent);
+.home-btn-glass:hover {
+  background-color: oklch(var(--b1) / 0.85);
+}
+
+// ==================== 首页：hero 页脚 ====================
+//
+// hero 页面专用的轻量页脚底板：一条浮在壁纸上的玻璃胶囊。
+.home-footer-bar {
+  background-color: oklch(var(--b1) / 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+[data-theme-type="dark"] .home-footer-bar {
+  background-color: oklch(var(--b1) / 0.78);
 }
 
 // ==================== 首页小组件 ====================
 //
+// .home-widget = 卡片底板；.home-enter = 入场动画。两者分开，
+// 因为 hero 身份区与页脚需要动画但不需要底板（套上底板就变成"又一张卡"）。
+//
 // 卡片底色按主题给不同透明度：亮色下要能透出壁纸（玻璃感），
-// 暗色下必须够实（壁纸被压暗后仍是中等亮度，卡片太透会让正文对比度不够）。
+// 暗色下必须够实 —— daisyUI 的 --b1 在暗色主题里只是"深灰"（约 29% 亮度）而非近黑，
+// 卡片太透会让正文字直接掉到 3:1 以下。
+// 亮色下刻意不敢放太透：这张壁纸的中下部是大片高光的沙滩与浪花（亮度接近纯白），
+// 卡片透出去之后底色几乎和壁纸一样亮，卡内的中小字号就撑不住对比度了。
+// 0.82 是"仍能看出壁纸纹理"与"文字够清楚"之间的折中。
 .home-widget {
-  background-color: oklch(var(--b1) / 0.68);
+  background-color: oklch(var(--b1) / 0.82);
 }
 
 [data-theme-type="dark"] .home-widget {
-  background-color: oklch(var(--b1) / 0.9);
-}
-
-// 首屏那张卡再透一档：它承载标题与简介，字号大、对比度余量足，
-// 换成更透的底就能在首屏把风景露出来。放在 .home-widget 之后覆盖之。
-.home-widget-hero {
-  background-color: oklch(var(--b1) / 0.32);
-}
-
-// 暗色下不跟着一起透：daisyUI 的 --b1 在暗色主题里只是"深灰"（约 29% 亮度）而非近黑，
-// 一旦透出明亮的风景，白字对比度会掉到 3:1 以下。想要风景就别用暗色主题。
-[data-theme-type="dark"] .home-widget-hero {
-  background-color: oklch(var(--b1) / 0.75);
+  background-color: oklch(var(--b1) / 0.92);
 }
 
 // 入场动画单独用一个类名，而不是复用 .onload-animation：
 // BaseLayout 的 slot 外层已经挂了 .onload-animation（整块内容淡入一次），
 // 再叠一个同名动画会让两段位移叠加、看起来发飘。这里只做小幅的错峰上浮。
-//
-// 延迟按栅格里的 DOM 顺序递增（.home-widget 就是栅格的直接子元素），
-// 所以顺序由 index.astro 的排列决定，不需要在组件里传 index。
-.home-widget {
+.home-enter {
   opacity: 0;
   animation: 420ms fadeInUp cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.home-widget-grid > .home-widget:nth-child(1) {
-  animation-delay: 60ms;
+// 延迟按栅格里的 DOM 顺序递增（.home-enter 就是栅格的直接子元素），
+// 所以顺序由 index.astro 的排列决定，不需要在组件里传 index。
+.home-widget-grid > .home-enter:nth-child(1) {
+  animation-delay: 90ms;
 }
 
-.home-widget-grid > .home-widget:nth-child(2) {
-  animation-delay: 140ms;
+.home-widget-grid > .home-enter:nth-child(2) {
+  animation-delay: 170ms;
 }
 
-.home-widget-grid > .home-widget:nth-child(3) {
-  animation-delay: 220ms;
-}
-
-.home-widget-grid > .home-widget:nth-child(4) {
-  animation-delay: 300ms;
-}
-
-.home-widget-grid > .home-widget:nth-child(5) {
-  animation-delay: 380ms;
+.home-widget-grid > .home-enter:nth-child(3) {
+  animation-delay: 250ms;
 }
 
 // ==================== 站内换页过渡 ====================

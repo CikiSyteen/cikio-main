@@ -1,0 +1,53 @@
+---
+import { USER_FOOTER_SOCIAL_ICONS, USER_NAME, USER_SITE } from "@config";
+import { Icon } from "astro-icon/components";
+
+/**
+ * hero 页面专用的轻量页脚。
+ *
+ * 站点自带的 Footer.astro 是 p-10 的通栏卡片，放在沉浸式 hero 里会把壁纸
+ * 从底部整条切掉。这里换成一条居中的玻璃胶囊：社交图标 + 一行版权，
+ * 数据仍取自同一份配置（user.footer.social），加 RSS 与站点页脚保持一致。
+ */
+const socials = [
+  ...USER_FOOTER_SOCIAL_ICONS,
+  {
+    href: "/rss.xml",
+    ariaLabel: "RSS Feed",
+    title: "RSS Feed",
+    svg: "ri:rss-line",
+  },
+];
+---
+
+<footer class="home-enter mx-auto w-fit max-w-full">
+  <div
+    class="home-footer-bar flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-2xl border border-base-300/40 px-5 py-3 sm:gap-x-6"
+  >
+    <div class="flex items-center gap-1">
+      {
+        socials.map((icon) => (
+          <div class="tooltip tooltip-top" data-tip={icon.title}>
+            <a
+              href={icon.href}
+              aria-label={icon.ariaLabel}
+              class="flex h-9 w-9 items-center justify-center rounded-lg text-base-content/75 transition-colors duration-200 hover:bg-base-200/70 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <Icon name={icon.svg} class="h-5 w-5" aria-hidden="true" />
+            </a>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="text-xs text-base-content/75">
+      © {new Date().getFullYear()} <a href={USER_SITE} class="link link-hover" target="_blank" rel="noopener noreferrer">{USER_NAME}</a>
+      · Powered by <a
+        href="https://github.com/EveSunMaple/Frosti"
+        class="link link-hover"
+        target="_blank"
+        rel="noopener noreferrer">Frosti</a
+      >
+    </p>
+  </div>
+</footer>

@@ -30,7 +30,13 @@ const {
   pubDate,
   // 首页等需要「全宽单列」的页面可隐藏侧栏；默认 false，保持既有的侧栏 + 内容双列布局
   hideSidebar = false,
+  // 沉浸式 hero 版式：隐含收起侧栏、不渲染站点页脚（页面自己给一个更轻的），
+  // 并在 body 上打 .hero-page 标记，供 global.scss 把顶部导航改写成浮在壁纸上的胶囊。
+  hero = false,
 } = Astro.props;
+
+// hero 页面天然不需要侧栏：首页的「站点导航」小组件与侧栏的分类/标签/菜单是重复信息
+const showSidebar = !hideSidebar && !hero;
 
 const pageUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const jsonLd =
@@ -134,7 +140,19 @@ const jsonLd =
     </script>
   </head>
 
-  <body class="flex flex-col min-h-screen" {...isIndexed ? { "data-pagefind-body": true } : {}}>
+  <body
+    class:list={["flex flex-col min-h-screen", hero && "hero-page"]}
+    {...isIndexed ? { "data-pagefind-body": true } : {}}
+  >
+    <!--
+      全屏背景层（首页风景壁纸）挂在这里、而不是放进内容区：
+      它用 position: fixed，而 fixed 的包含块会被**任何带 transform 的祖先**接管。
+      内容区外层的 .onload-animation 恰好靠 transform 做入场动画且 fill-mode 为 forwards，
+      留在里面的话背景会被压缩到内容列范围内（首页实测就是被压到导航下方的那个方框里）。
+      放在 body 下才是真正的视口级固定层。
+    -->
+    <slot name="backdrop" />
+
     <a
       href="#main-content"
       class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:btn focus:btn-primary"
@@ -157,27 +175,32 @@ const jsonLd =
       <div
         class:list={[
           "grid grid-cols-1 gap-4 p-4 h-full items-start",
-          !hideSidebar && "lg:grid-cols-[17.5rem_minmax(0,1fr)]",
+          showSidebar && "lg:grid-cols-[17.5rem_minmax(0,1fr)]",
         ]}
       >
         <main
           id="main-content"
           tabindex="-1"
-          class="col-span-1 min-w-0 bg-transparent order-1 lg:order-2 mt-16 md:mt-0 flex flex-col gap-4"
+          class:list={[
+            "col-span-1 min-w-0 bg-transparent order-1 lg:order-2 flex flex-col gap-4",
+            // hero 页面顶部是浮在壁纸上的胶囊导航，不需要给固定导航留出 4rem 的空白
+            hero ? "mt-20 md:mt-24" : "mt-16 md:mt-0",
+          ]}
         >
           <div class="onload-animation flex-grow flex flex-col gap-4">
             <slot />
           </div>
-          <Footer />
+          <!-- hero 页面自带更轻的页脚（一行社交 + 版权），不叠通栏的站点页脚 -->
+          {!hero && <Footer />}
         </main>
         <!--
           侧栏列在 lg 下用 self-stretch 撑到与内容列同高：
           目录卡片的吸附（sticky）只能在「包含块内」移动，包含块高度不足时吸附等于失效。
           撑满后目录才有足够的行程从页面下方一路跟到文章结束。
-          hideSidebar 为 true 时整列不渲染（首页用它换出一整行来铺小组件网格）。
+          showSidebar 为 false 时整列不渲染（首页用它换出整行来铺小组件网格）。
         -->
         {
-          !hideSidebar && (
+          showSidebar && (
             <aside class="col-span-1 w-full lg:w-[17.5rem] lg:max-w-[17.5rem] lg:self-stretch bg-transparent order-2 lg:order-1">
               <Sidebar headings={headings} showTOC={showTOC} />
               <slot name="sidebar" />

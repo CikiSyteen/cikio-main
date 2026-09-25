@@ -11,9 +11,10 @@ import WidgetCard from "./WidgetCard.astro";
  * 所以时间一律由客户端脚本填充；卡片外层带入场淡入，脚本在 astro:page-load
  * 时立即写入，访客看不到占位符。
  *
- * 天气走 Open-Meteo 的免费接口（HTTPS、无需密钥、无需注册），
- * 结果缓存在 sessionStorage 里 30 分钟不重复请求；请求失败只把该行降级为提示文案，
- * 不影响卡片其余部分。不想显示天气就把 frosti.config.yaml 的 user.weather.enabled 设为 false。
+ * 天气走 Open-Meteo 的免费接口（HTTPS、无需密钥、无需注册）：主行给天气与气温区间，
+ * 副行给湿度与风向风速（凑近参考页 "上海 | 阴 25°C~32°C | 东南风1级" 的信息量）。
+ * 结果缓存在 sessionStorage 里 30 分钟不重复请求；请求失败只把该行降级为提示文案。
+ * 不想显示天气就把 frosti.config.yaml 的 user.weather.enabled 设为 false。
  */
 
 export interface ClockWeatherWidgetProps {
@@ -31,17 +32,16 @@ const weather =
 ---
 
 <WidgetCard id="home-clock" title="日期与时间" icon="lucide:clock" class={className}>
-  <!-- justify-between：同高拉伸时把时间留在顶部、天气压到底部，不会堆在上方留一大片空白 -->
-  <div class="flex flex-1 flex-col justify-between gap-3">
+  <div class="flex flex-1 flex-col gap-3">
     <div class="flex items-baseline gap-0.5 font-mono tabular-nums">
       <span data-clock-time class="text-4xl font-bold tracking-tight">--:--</span>
       <span data-clock-seconds class="text-lg font-semibold text-primary">:--</span>
     </div>
 
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-      <span data-clock-date class="text-base-content/75">&nbsp;</span>
+      <span data-clock-date class="text-base-content/85">&nbsp;</span>
       <span data-clock-weekday class="badge badge-ghost badge-sm">&nbsp;</span>
-      <span data-clock-greeting class="text-base-content/60">&nbsp;</span>
+      <span data-clock-greeting class="text-base-content/75">&nbsp;</span>
     </div>
 
     {
@@ -50,20 +50,29 @@ const weather =
           data-weather
           data-latitude={weather.latitude}
           data-longitude={weather.longitude}
-          class="flex items-center gap-2 border-t border-base-300/50 pt-3 text-sm"
+          class="flex flex-col gap-2 border-t border-base-300/50 pt-3"
         >
-          <Icon
-            name="lucide:cloud-sun"
-            class="h-4 w-4 shrink-0 text-primary"
-            aria-hidden="true"
-          />
-          <span data-weather-text class="text-base-content/75">
-            正在获取天气…
-          </span>
-          <span class="ml-auto inline-flex shrink-0 items-center gap-1 text-xs text-base-content/50">
-            <Icon name="lucide:map-pin" class="h-3 w-3" aria-hidden="true" />
-            {weather.city}
-          </span>
+          <div class="flex items-center gap-2 text-sm">
+            <Icon
+              name="lucide:cloud-sun"
+              class="h-4 w-4 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+            <span data-weather-text class="text-base-content/85">
+              正在获取天气…
+            </span>
+            <span class="ml-auto inline-flex shrink-0 items-center gap-1 text-xs text-base-content/65">
+              <Icon name="lucide:map-pin" class="h-3 w-3" aria-hidden="true" />
+              {weather.city}
+            </span>
+          </div>
+
+          <!-- 湿度 / 风向风速：取到数据才显示，取不到就整行留着不占位 -->
+          <div
+            data-weather-extra
+            class="hidden flex-wrap items-center gap-x-3 gap-y-1 pl-6 text-xs text-base-content/65"
+          >
+          </div>
         </div>
       )
     }
@@ -78,6 +87,7 @@ const weather =
   let weatherController: AbortController | undefined;
 
   const WEEKDAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const WIND_DIRECTION_LABELS = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"];
 
   // WMO weather code → 中文描述（Open-Meteo 用的是 WMO 4677 编码）
   const WEATHER_CODE_LABELS: Record<number, string> = {
@@ -115,7 +125,10 @@ const weather =
   const WEATHER_TTL = 30 * 60 * 1000;
 
   interface WeatherReading {
+    /** 主行：天气 + 气温区间 */
     text: string;
+    /** 副行：湿度 + 风向风速，取不到时为「」 */
+    extra: string;
     savedAt: number;
   }
 
@@ -142,10 +155,7 @@ const weather =
     const now = new Date();
     setText("[data-clock-time]", `${pad(now.getHours())}:${pad(now.getMinutes())}`);
     setText("[data-clock-seconds]", `:${pad(now.getSeconds())}`);
-    setText(
-      "[data-clock-date]",
-      `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`,
-    );
+    setText("[data-clock-date]", `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`);
     setText("[data-clock-weekday]", WEEKDAY_LABELS[now.getDay()] ?? "");
     setText("[data-clock-greeting]", greetingOf(now.getHours()));
   }
@@ -171,13 +181,28 @@ const weather =
     }
   }
 
-  function writeWeatherCache(text: string): void {
-    const reading: WeatherReading = { text, savedAt: Date.now() };
+  function writeWeatherCache(reading: WeatherReading): void {
     try {
       window.sessionStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(reading));
     } catch {
       // 隐私模式下 sessionStorage 不可写，忽略即可
     }
+  }
+
+  function applyWeather(reading: WeatherReading): void {
+    setText("[data-weather-text]", reading.text);
+    const extra = document.querySelector<HTMLElement>("[data-weather-extra]");
+    if (!extra) return;
+    if (!reading.extra) return;
+    extra.textContent = reading.extra;
+    extra.classList.remove("hidden");
+    extra.classList.add("flex");
+  }
+
+  /** 把风向角度归到 8 个方位（45° 一档） */
+  function describeWindDirection(degrees: number): string {
+    const index = Math.round(degrees / 45) % 8;
+    return WIND_DIRECTION_LABELS[index] ?? "";
   }
 
   function describeWeather(code: number, min: number, max: number): string {
@@ -191,7 +216,7 @@ const weather =
 
     const cached = readWeatherCache();
     if (cached) {
-      setText("[data-weather-text]", cached.text);
+      applyWeather(cached);
       return;
     }
 
@@ -205,7 +230,10 @@ const weather =
       const url = new URL("https://api.open-meteo.com/v1/forecast");
       url.searchParams.set("latitude", latitude);
       url.searchParams.set("longitude", longitude);
-      url.searchParams.set("current", "temperature_2m,weather_code");
+      url.searchParams.set(
+        "current",
+        "temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m,wind_direction_10m",
+      );
       url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min");
       url.searchParams.set("timezone", "auto");
       url.searchParams.set("forecast_days", "1");
@@ -216,7 +244,12 @@ const weather =
       }
 
       const data = (await response.json()) as {
-        current?: { weather_code?: number };
+        current?: {
+          weather_code?: number;
+          relative_humidity_2m?: number;
+          wind_speed_10m?: number;
+          wind_direction_10m?: number;
+        };
         daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[] };
       };
 
@@ -227,9 +260,27 @@ const weather =
         throw new Error("天气数据不完整");
       }
 
-      const text = describeWeather(code, min, max);
-      writeWeatherCache(text);
-      setText("[data-weather-text]", text);
+      const humidity = data.current?.relative_humidity_2m;
+      const windSpeed = data.current?.wind_speed_10m;
+      const windDirection = data.current?.wind_direction_10m;
+
+      const extraParts: string[] = [];
+      if (typeof humidity === "number") {
+        extraParts.push(`湿度 ${Math.round(humidity)}%`);
+      }
+      if (typeof windSpeed === "number") {
+        const direction = typeof windDirection === "number" ? describeWindDirection(windDirection) : "";
+        extraParts.push(`${direction}风 ${Math.round(windSpeed)} km/h`);
+      }
+
+      const reading: WeatherReading = {
+        text: describeWeather(code, min, max),
+        extra: extraParts.join(" · "),
+        savedAt: Date.now(),
+      };
+
+      writeWeatherCache(reading);
+      applyWeather(reading);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setText("[data-weather-text]", "天气暂不可用");

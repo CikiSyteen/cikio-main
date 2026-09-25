@@ -29,10 +29,10 @@ import homeLandscape from "@/assets/home-landscape.webp";
     class="home-backdrop-image"
   />
 
-  <!-- 整体薄纱 -->
+  <!--
+    只有一层整体薄纱，没有任何"收边"渐变：
+    顶部导航是浮在壁纸上的半透明胶囊、页脚也是，因此画面可以真正铺满整屏，
+    不需要在上下两端让位给通栏元素。文字的可读性由卡片与 hero 的柔光承担。
+  -->
   <div class="home-backdrop-veil"></div>
-
-  <!-- 只在上下两端收到主题底色：顶部融进导航栏、底部融进页脚，中间完整透出风景 -->
-  <div class="home-backdrop-top"></div>
-  <div class="home-backdrop-bottom"></div>
 </div>
