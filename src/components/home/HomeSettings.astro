@@ -51,7 +51,11 @@ const defaults = {
 const localBackgrounds = backgrounds.filter((item) => item.path);
 const dynamicBackgrounds = backgrounds.filter((item) => item.url);
 
-/** 动态壁纸的弹窗缩略图：复用接口的 w/h 参数拉小图，避免为了预览下载 1080p */
+/**
+ * 动态壁纸的弹窗缩略图：复用接口的 w/h 参数拉小图，避免为了预览下载 1080p。
+ * 注意必应 th 端点只为 16:9 标准尺寸生成派生图（640x360 可用），
+ * 其它比例（如 480x300、480x270）会 404，这里不能随意改尺寸。
+ */
 const thumbOfUrl = (url: string, w: number, h: number) =>
   url.replace(/([?&])w=\d+/, `$1w=${w}`).replace(/([?&])h=\d+/, `$1h=${h}`);
 const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
@@ -151,10 +155,10 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
                         </div>
                       ) : (
                         <img
-                          src={item.url ? thumbOfUrl(item.url, 480, 300) : ""}
+                          src={item.url ? thumbOfUrl(item.url, 640, 360) : ""}
                           alt={item.name}
-                          width="240"
-                          height="150"
+                          width="320"
+                          height="180"
                           loading="lazy"
                           class="h-14 w-24 shrink-0 rounded-md object-cover"
                         />

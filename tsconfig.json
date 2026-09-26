@@ -11,5 +11,6 @@
       "@utils/*": ["src/utils/*"]
     },
     "strict": true
-  }
+  },
+  "exclude": ["dist", "fuwari-main"]
 }

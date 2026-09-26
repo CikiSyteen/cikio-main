@@ -45,6 +45,9 @@ background:
     - id: sunbeams
       name: 云海森林
       path: /image/home/sunbeams
+    - id: earth-clouds
+      name: 轨道云海
+      path: /image/home/earth-clouds
     - id: bing-daily
       name: 必应今日
       url: "https://api.bimg.cc/today?w=1920&h=1080&mkt=zh-CN"
