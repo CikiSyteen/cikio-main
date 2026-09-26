@@ -97,6 +97,7 @@ const { className = "" } = Astro.props as ThemeToggleProps;
         resolved === "dark" ? SITE_THEME.dark : SITE_THEME.light,
       );
       document.documentElement.setAttribute("data-theme-type", resolved);
+      document.documentElement.setAttribute("data-theme-mode", mode);
       localStorage.setItem(STORAGE_KEY, mode);
     };
 
@@ -180,5 +181,16 @@ const { className = "" } = Astro.props as ThemeToggleProps;
   [data-theme-toggle] {
     display: grid;
     place-items: center;
+  }
+
+  /* 用 <html> 的 data-theme-mode 直接显隐图标，避免首屏三图标同时叠现的闪烁。
+     按钮要显示的图标恰好等于当前模式（auto 显示 sun-moon、其余按明暗），
+     因此只保留 data-theme-icon 与模式相符的那一枚即可；JS 的 syncUI 仍会补
+     hidden 类，二者保持一致。该规则在首屏绘制前即生效（data-theme-mode
+     由 BaseLayout 的内联脚本同步写好）。 */
+  [data-theme-mode="light"] [data-theme-icon]:not([data-theme-icon="light"]),
+  [data-theme-mode="dark"]  [data-theme-icon]:not([data-theme-icon="dark"]),
+  [data-theme-mode="auto"]  [data-theme-icon]:not([data-theme-icon="auto"]) {
+    display: none;
   }
 </style>

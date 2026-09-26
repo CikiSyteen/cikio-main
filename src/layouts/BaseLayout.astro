@@ -101,9 +101,10 @@ const jsonLd =
 
         // 只写属性、不读 DOM，因此也能作用在「即将换上的新文档」上
         const applyTheme = (root) => {
-          const { theme, type } = resolveTheme();
+          const { theme, type, mode } = resolveTheme();
           root.setAttribute("data-theme", theme);
           root.setAttribute("data-theme-type", type);
+          root.setAttribute("data-theme-mode", mode);
         };
 
         // 首次加载：赶在样式计算之前把主题落到 <html>，避免默认（浅色）主题先闪一下

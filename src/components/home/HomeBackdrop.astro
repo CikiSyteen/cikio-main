@@ -92,6 +92,50 @@ const dimsOf = (item: HomeBackgroundItem) =>
   set:html={JSON.stringify({ backgrounds, defaultId, mode })}
 ></script>
 
+{/*
+  首屏防闪：SSR 只能渲染默认壁纸，访客若选了别的图，客户端脚本（astro:page-load）
+  才会切换，于是先闪默认再切选中。这里在解析期、首屏绘制前用内联脚本把初始图直接换成
+  用户已选的那张，后续的 initBackdrop 会因「当前层已是选中项」而跳过，不再二次切换。
+*/}
+<script is:inline>
+  (function () {
+    try {
+      var raw = localStorage.getItem("cikio-home-settings");
+      if (!raw) return;
+      var settings = JSON.parse(raw);
+      var bgId = settings && settings.bg;
+      if (!bgId) return;
+
+      var dataEl = document.querySelector("[data-home-bg-data]");
+      if (!dataEl) return;
+      var payload = JSON.parse(dataEl.textContent || "{}");
+      var list = payload.backgrounds || [];
+      var item = null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === bgId) {
+          item = list[i];
+          break;
+        }
+      }
+      if (!item) return;
+
+      var img = document.querySelector(".home-backdrop-layer.is-active [data-bg-image]");
+      if (!img || img.dataset.bgId === bgId) return;
+
+      if (item.url) {
+        img.removeAttribute("srcset");
+        img.src = item.url + (item.url.indexOf("?") > -1 ? "&" : "?") + "_t=" + Date.now();
+      } else {
+        img.srcset = item.path + "-960.webp 960w, " + item.path + "-1920.webp 1920w";
+        img.src = item.path + "-1920.webp";
+      }
+      img.dataset.bgId = bgId;
+    } catch (e) {
+      /* 解析失败就退回 SSR 的默认图，不影响其余功能 */
+    }
+  })();
+</script>
+
 <script>
   import type { Rotation } from "@utils/homeRotation";
   import { dailyRotationIndex, normalizeRotation, parseRotation } from "@utils/homeRotation";
