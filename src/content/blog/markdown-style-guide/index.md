@@ -2,7 +2,7 @@
 title: "Markdown 语法示例"
 description: "这里演示在 Astro 中编写 Markdown 内容时常用到的一些基础语法。"
 pubDate: "Jul 01 2024"
-image: /image/image3.webp
+image: ./cover.webp
 categories:
   - 文档
   - 示例
@@ -43,7 +43,7 @@ badge: 置顶
 
 #### 输出
 
-![博客占位图](/logo.webp)
+![博客占位图](/site/logo.webp)
 
 ## 引用
 

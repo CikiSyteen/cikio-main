@@ -1,7 +1,10 @@
 ---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
 interface Props {
-  l: string; // left image
-  r: string; // right image
+  l: ImageMetadata; // left image（本地导入的图片资源）
+  r: ImageMetadata; // right image
   rightAlt?: string;
   leftAlt?: string;
 }
@@ -11,10 +14,10 @@ const { l, r, rightAlt = "右图", leftAlt = "左图" } = Astro.props;
 
 <div class="not-prose diff aspect-[16/9] rounded-lg overflow-hidden fade-in-up">
   <div class="diff-item-1">
-    <img alt={rightAlt} src={r} loading="lazy" width="1280" height="720" decoding="async" />
+    <Image alt={rightAlt} src={r} width={1280} height={720} loading="lazy" decoding="async" />
   </div>
   <div class="diff-item-2">
-    <img alt={leftAlt} src={l} loading="lazy" width="1280" height="720" decoding="async" />
+    <Image alt={leftAlt} src={l} width={1280} height={720} loading="lazy" decoding="async" />
   </div>
   <div class="diff-resizer"></div>
 </div>

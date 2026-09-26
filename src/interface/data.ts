@@ -1,4 +1,5 @@
 import type { CollectionEntry } from "astro:content";
+import type { ImageMetadata } from "astro";
 
 export type Post = CollectionEntry<"blog"> & {
   remarkPluginFrontmatter: {
@@ -21,7 +22,8 @@ export interface Page {
 export interface PostData {
   title: string;
   description?: string;
-  image?: string;
+  // 文章封面来自 content collection 的 image() 字段（astro:assets 的图片元数据）
+  image?: ImageMetadata;
   pubDate?: Date;
   badge?: string;
   categories?: string[];

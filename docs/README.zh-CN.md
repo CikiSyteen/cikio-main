@@ -23,7 +23,7 @@
 - ✅ 使用 [Tailwind CSS](https://tailwindcss.com/) 与 [daisyUI](https://daisyui.com/) 构建自适应页面
 - ✅ RSS 订阅支持
 - 🛠️ 博客易上手
-  - 可以在 `frosti.config.yaml` 自定义您博客的内容
+  - 可以在 `config/frosti.config.yaml` 自定义您博客的内容
 
 ## 💬 评论系统
 
@@ -89,7 +89,7 @@ pnpm run dev
 
 ## 🔧 配置
 
-Frosti 使用 `frosti.config.yaml` 作为配置文件，您可以在此文件中配置网站的基本信息、导航栏、页脚等内容。
+Frosti 使用 `config/frosti.config.yaml` 作为配置文件，您可以在此文件中配置网站的基本信息、导航栏、页脚等内容。
 
 ### 网站基本信息 (site)
 
@@ -149,7 +149,7 @@ menu:
 user:
   name: EveSunMaple # 用户名称
   site: "https://example.com" # 用户网站
-  avatar: /profile.png # 用户头像
+  avatar: /site/avatar.png # 用户头像
 ```
 
 ### 社交媒体配置 (social)
@@ -173,7 +173,7 @@ Frosti 使用 [Iconify](https://icon-sets.iconify.design/) 作为图标库。您
 
 Frosti 支持多语言，通过以下方式配置：
 
-1. 在 `frosti.config.yaml` 中设置网站默认语言：
+1. 在 `config/frosti.config.yaml` 中设置网站默认语言：
 
 ```yaml
 site:
@@ -201,7 +201,7 @@ zh: # 中文翻译
 要添加新的语言支持或修改现有翻译：
 
 1. 在 `translations.yaml` 文件中添加新的语言代码和对应翻译，或修改现有翻译
-2. 在 `frosti.config.yaml` 中更改 `site.language` 为您要使用的语言代码
+2. 在 `config/frosti.config.yaml` 中更改 `site.language` 为您要使用的语言代码
 
 ## 🚀 自动更新
 

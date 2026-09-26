@@ -2,7 +2,7 @@
 title: 为 Frosti 添加评论系统
 description: 一份完整指南：如何把 Waline 评论系统接入你的 Frosti 博客
 pubDate: 04 15 2025
-image: /image/image4.webp
+image: ./cover.webp
 categories:
   - 文档
 tags:

@@ -4,7 +4,7 @@ site:
   title: Cikio # 网站的标题
   description: Cikio — CikiSyteen 的个人博客，记录开发实践与技术笔记。 # 网站的描述，用于SEO等
   language: zh # 网站的语言，例如 "en" 是英文
-  favicon: /favicon.png # 网站的图标，用于浏览器标签栏和其他地方显示
+  favicon: /site/favicon.png # 网站的图标，用于浏览器标签栏和其他地方显示
   theme: # 更多主题 https://daisyui.com/docs/themes/
     light: winter # 主题的浅色模式
     dark: dracula # 主题的深色模式
@@ -63,7 +63,7 @@ site:
 user:
   name: CikiSyteen # 用户名
   site: "https://www.cikio.cn" # 用户的网站链接（同时作为 astro 的 site：canonical / sitemap / RSS / OG 的基准 URL）
-  avatar: /profile.png # 用户头像路径
+  avatar: /site/avatar.png # 用户头像路径（首页 hero 用）
   bio: "" # 个人简介（显示在侧栏头像下方，留空则整行不显示）
   # 首页天气小组件（可选）。数据来自 Open-Meteo 的免费接口：HTTPS、无需密钥、无需注册。
   # 不需要天气就把 enabled 改成 false（首页只保留日期与时间）。

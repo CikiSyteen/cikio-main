@@ -23,7 +23,7 @@ A clean, elegant, and fast static blog template! 🚀 Built with Astro
 - ✅ Responsive design built with [Tailwind CSS](https://tailwindcss.com/) and [daisyUI](https://daisyui.com/)
 - ✅ RSS feed support
 - 🛠️ Easy to use blog
-  - Customize your blog content in `frosti.config.yaml`
+  - Customize your blog content in `config/frosti.config.yaml`
   
 ## 💬 Comment System
 
@@ -89,7 +89,7 @@ pnpm run dev
 
 ## 🔧 Configuration
 
-Frosti uses `frosti.config.yaml` as its configuration file, where you can configure the website's basic information, navigation bar, footer, and more.
+Frosti uses `config/frosti.config.yaml` as its configuration file, where you can configure the website's basic information, navigation bar, footer, and more.
 
 ### Website Basic Information (site)
 
@@ -149,7 +149,7 @@ You can configure sub-menu items by adding `subItems` with the same format as ma
 user:
   name: EveSunMaple # Username
   site: "https://example.com" # User website
-  avatar: /profile.png # User avatar
+  avatar: /site/avatar.png # User avatar
 ```
 
 ### Social Media Configuration (social)
@@ -173,7 +173,7 @@ Frosti uses [Iconify](https://icon-sets.iconify.design/) as its icon library. Yo
 
 Frosti supports multiple languages, configured through:
 
-1. Setting the default language in `frosti.config.yaml`:
+1. Setting the default language in `config/frosti.config.yaml`:
 
 ```yaml
 site:
@@ -201,7 +201,7 @@ zh: # Chinese translations
 To add new language support or modify existing translations:
 
 1. Add a new language code and corresponding translations in the `translations.yaml` file, or modify existing translations
-2. Change `site.language` in `frosti.config.yaml` to your preferred language code
+2. Change `site.language` in `config/frosti.config.yaml` to your preferred language code
 
 ## 🚀 Automatic Updates
 

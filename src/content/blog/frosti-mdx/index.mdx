@@ -2,7 +2,7 @@
 title: 在 Frosti 中使用 MDX
 description: 借助 MDX，为文章内容引入更多 Frosti 组件
 pubDate: 07 12 2024
-image: /image/image2.webp
+image: ./cover.webp
 categories:
   - 文档
   - 示例
@@ -12,15 +12,18 @@ tags:
   - 项目
 ---
 
-import Collapse from "../../components/mdx/Collapse.astro";
-import Diff from "../../components/mdx/Diff.astro";
-import Error from "../../components/mdx/Error.astro";
-import Info from "../../components/mdx/Info.astro";
-import Kbd from "../../components/mdx/Kbd.astro";
-import Success from "../../components/mdx/Success.astro";
-import Warning from "../../components/mdx/Warning.astro";
-import TimeLine from "../../components/mdx/TimeLine.astro";
-import LinkCard from "../../components/mdx/LinkCard.astro";
+import Collapse from "../../../components/mdx/Collapse.astro";
+import Diff from "../../../components/mdx/Diff.astro";
+import Error from "../../../components/mdx/Error.astro";
+import Info from "../../../components/mdx/Info.astro";
+import Kbd from "../../../components/mdx/Kbd.astro";
+import Success from "../../../components/mdx/Success.astro";
+import Warning from "../../../components/mdx/Warning.astro";
+import TimeLine from "../../../components/mdx/TimeLine.astro";
+import LinkCard from "../../../components/mdx/LinkCard.astro";
+// 与本篇文章同目录的演示图片：import 后交给 astro:assets 处理（压缩 + 尺寸）
+import diffLeft from "./diff-left.webp";
+import diffRight from "./diff-right.webp";
 
 ## 前言
 
@@ -37,15 +40,15 @@ import LinkCard from "../../components/mdx/LinkCard.astro";
 Frosti 提供的组件都放在 `/mdx` 目录下。在文档属性（frontmatter）之后写入：
 
 ```astro
-import Collapse from "../../components/mdx/Collapse.astro";
-import Diff from "../../components/mdx/Diff.astro";
-import Error from "../../components/mdx/Error.astro";
-import Info from "../../components/mdx/Info.astro";
-import Kbd from "../../components/mdx/Kbd.astro";
-import Success from "../../components/mdx/Success.astro";
-import Warning from "../../components/mdx/Warning.astro";
-import TimeLine from "../../components/mdx/TimeLine.astro";
-import LinkCard from "../../components/mdx/LinkCard.astro";
+import Collapse from "../../../components/mdx/Collapse.astro";
+import Diff from "../../../components/mdx/Diff.astro";
+import Error from "../../../components/mdx/Error.astro";
+import Info from "../../../components/mdx/Info.astro";
+import Kbd from "../../../components/mdx/Kbd.astro";
+import Success from "../../../components/mdx/Success.astro";
+import Warning from "../../../components/mdx/Warning.astro";
+import TimeLine from "../../../components/mdx/TimeLine.astro";
+import LinkCard from "../../../components/mdx/LinkCard.astro";
 ```
 
 ### 示例
@@ -64,10 +67,13 @@ import LinkCard from "../../components/mdx/LinkCard.astro";
 
 #### Diff
 
-<Diff l="/image/l.webp" r="/image/r.webp" />
+<Diff l={diffLeft} r={diffRight} />
 
 ```astro
-<Diff l="/image/l.webp" r="/image/r.webp" />
+import diffLeft from "./diff-left.webp";
+import diffRight from "./diff-right.webp";
+
+<Diff l={diffLeft} r={diffRight} />
 ```
 
 #### Error
@@ -140,7 +146,7 @@ import LinkCard from "../../components/mdx/LinkCard.astro";
   title="Frosti"
   desc="我的博客项目！"
   url="https://github.com/EveSunMaple/Frosti"
-  img="/logo.webp"
+  img="/site/logo.webp"
 />
 
 ```astro
@@ -148,6 +154,6 @@ import LinkCard from "../../components/mdx/LinkCard.astro";
   title="Frosti"
   desc="我的博客项目！"
   url="https://github.com/EveSunMaple/Frosti"
-  img="/logo.webp"
+  img="/site/logo.webp"
 />
 ```

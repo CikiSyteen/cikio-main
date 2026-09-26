@@ -8,10 +8,10 @@ import { load as loadYaml } from "js-yaml";
 // 用别名会直接以 "Cannot find module '@utils/homeRotation'" 中断构建。
 import { normalizeRotation } from "./utils/homeRotation";
 
-// 配置文件路径
-const configPath = path.resolve("frosti.config.yaml");
+// 配置文件路径（站点 YAML 配置统一放在 config/ 目录下）
+const configPath = path.resolve("config/frosti.config.yaml");
 // 首页（hero）配置；这个文件是可选的，缺失时首页退回到内置的空配置
-const homeConfigPath = path.resolve("home.config.yaml");
+const homeConfigPath = path.resolve("config/home.config.yaml");
 // 翻译文件路径
 const translationsPath = path.resolve("src/i18n/translations.yaml");
 // 读取并解析 YAML 文件
