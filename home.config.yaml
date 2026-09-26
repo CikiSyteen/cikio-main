@@ -8,9 +8,14 @@
 # 改完需要重新构建（pnpm build）才会出现在页面上。
 # =============================================================================
 
-# 背景图。图片放在 public/ 下，path 不带扩展名。
+# 背景图。本地图片放在 public/ 下，path 不带扩展名。
 # 约定：同一张图提供 -960 与 -1920 两个宽度，组件据此拼 srcset 做响应式加载。
 # 自己加图时按同样命名放两份（例如 mypic-960.webp / mypic-1920.webp）即可。
+#
+# 动态壁纸用 url 而不是 path：完整的图片地址，每次显示时由浏览器实时拉取。
+#   bing-daily  必应每日精选（当天固定，次日自动换新）
+#   bing-random 必应随机壁纸（每次拉取都不同，配合轮换间隔可自动换）
+# 接口：https://api.bimg.cc（302 跳转到真实图片，可直接作为 <img> 源）
 background:
   images:
     - id: coast
@@ -22,6 +27,30 @@ background:
     - id: lake
       name: 静湖森林
       path: /image/home/lake
+    - id: elk-valley
+      name: 晨雾河谷
+      path: /image/home/elk-valley
+    - id: lighthouse-coast
+      name: 灯塔风暴
+      path: /image/home/lighthouse-coast
+    - id: brighton-jetty
+      name: 落日栈桥
+      path: /image/home/brighton-jetty
+    - id: loughrigg-tarn
+      name: 山谷晨光
+      path: /image/home/loughrigg-tarn
+    - id: milky-way
+      name: 海岸银河
+      path: /image/home/milky-way
+    - id: sunbeams
+      name: 云海森林
+      path: /image/home/sunbeams
+    - id: bing-daily
+      name: 必应今日
+      url: "https://api.bimg.cc/today?w=1920&h=1080&mkt=zh-CN"
+    - id: bing-random
+      name: 必应随机
+      url: "https://api.bimg.cc/random?w=1920&h=1080&mkt=zh-CN"
 
   # 默认使用哪一张（填上面的 id）。留空或填了不存在的 id 时用第一张。
   default: coast

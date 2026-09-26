@@ -46,6 +46,15 @@ const defaults = {
   quoteMode,
   bgMode: backgroundMode,
 };
+
+/** 本地静态图（有 path）与动态壁纸（有 url，必应今日/随机）分开渲染 */
+const localBackgrounds = backgrounds.filter((item) => item.path);
+const dynamicBackgrounds = backgrounds.filter((item) => item.url);
+
+/** 动态壁纸的弹窗缩略图：复用接口的 w/h 参数拉小图，避免为了预览下载 1080p */
+const thumbOfUrl = (url: string, w: number, h: number) =>
+  url.replace(/([?&])w=\d+/, `$1w=${w}`).replace(/([?&])h=\d+/, `$1h=${h}`);
+const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
 ---
 
 <!--
@@ -73,86 +82,132 @@ const defaults = {
     aria-labelledby="home-settings-title"
   >
     <div
-      class="home-settings-panel flex w-full flex-col gap-4 rounded-2xl border border-base-300/50 bg-base-100 p-5 shadow-2xl"
+      class="home-settings-panel flex w-full flex-col overflow-hidden rounded-2xl border border-base-300/50 bg-base-100 shadow-2xl"
     >
-      <div class="flex items-center justify-between gap-3">
-        <h2 id="home-settings-title" class="flex items-center gap-2 text-sm font-bold">
-          <Icon name="lucide:sliders-horizontal" class="h-4 w-4 text-primary" aria-hidden="true" />
-          <span>首页设置</span>
-        </h2>
+      <!-- 青柠起始页式页头：标题居中，关闭钮绝对定位在右侧 -->
+      <header class="relative flex items-center justify-center border-b border-base-300/50 px-12 py-3.5">
+        <h2 id="home-settings-title" class="text-sm font-bold">首页设置</h2>
         <button
           type="button"
           data-home-settings-close
           aria-label="关闭设置"
-          class="btn btn-ghost btn-sm btn-circle text-base-content"
+          class="btn btn-ghost btn-sm btn-circle absolute right-2.5 text-base-content"
         >
           <Icon name="lucide:x" class="h-4 w-4" aria-hidden="true" />
         </button>
+      </header>
+
+      <div class="flex flex-col gap-4 px-5 pt-4 pb-4">
+        {
+          localBackgrounds.length > 0 && (
+            <section>
+              <h3 class="mb-2 text-xs font-medium text-base-content/60">默认</h3>
+              <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {localBackgrounds.map((item) => (
+                  <label class="relative block cursor-pointer" title={item.name}>
+                    <input
+                      type="radio"
+                      name="home-background"
+                      value={item.id}
+                      class="peer sr-only"
+                      data-home-bg-option
+                    />
+                    <img
+                      src={`${item.path}-960.webp`}
+                      alt={item.name}
+                      width="960"
+                      height="640"
+                      loading="lazy"
+                      class="aspect-[3/2] w-full rounded-lg object-cover ring-2 ring-transparent transition peer-checked:ring-primary peer-focus-visible:ring-primary"
+                    />
+                    <span class="pointer-events-none absolute right-1 bottom-1 hidden h-5 w-5 items-center justify-center rounded-full bg-base-100/95 text-primary shadow peer-checked:flex">
+                      <Icon name="lucide:check" class="h-3.5 w-3.5" aria-hidden="true" />
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </section>
+          )
+        }
+
+        {
+          dynamicBackgrounds.length > 0 && (
+            <section>
+              <h3 class="mb-2 text-xs font-medium text-base-content/60">必应壁纸</h3>
+              <div class="flex flex-col gap-2">
+                {dynamicBackgrounds.map((item) => (
+                  <label class="relative block cursor-pointer" title={item.name}>
+                    <input
+                      type="radio"
+                      name="home-background"
+                      value={item.id}
+                      class="peer sr-only"
+                      data-home-bg-option
+                    />
+                    <div class="flex items-center gap-3 rounded-lg border border-base-300/40 bg-base-200/40 p-2 ring-2 ring-transparent transition peer-checked:ring-primary peer-focus-visible:ring-primary">
+                      {isRandom(item) ? (
+                        <div class="flex h-14 w-24 shrink-0 items-center justify-center rounded-md bg-base-300/50">
+                          <Icon name="lucide:shuffle" class="h-6 w-6 text-primary" aria-hidden="true" />
+                        </div>
+                      ) : (
+                        <img
+                          src={item.url ? thumbOfUrl(item.url, 480, 300) : ""}
+                          alt={item.name}
+                          width="240"
+                          height="150"
+                          loading="lazy"
+                          class="h-14 w-24 shrink-0 rounded-md object-cover"
+                        />
+                      )}
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">{item.name}</p>
+                        <p class="truncate text-xs text-base-content/60">
+                          {isRandom(item) ? "每次都换一张 · 来源必应" : "每天自动更新 · 来源必应"}
+                        </p>
+                      </div>
+                    </div>
+                    <span class="pointer-events-none absolute top-3 right-3 hidden h-5 w-5 items-center justify-center rounded-full bg-base-100/95 text-primary shadow peer-checked:flex">
+                      <Icon name="lucide:check" class="h-3.5 w-3.5" aria-hidden="true" />
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </section>
+          )
+        }
+
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
+            <span>一言轮换</span>
+            <select class="select select-bordered select-sm" data-home-quote-mode>
+              {
+                ROTATION_OPTIONS.map((option) => (
+                  <option value={option.value}>{option.label}</option>
+                ))
+              }
+            </select>
+          </label>
+
+          <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
+            <span>背景轮换</span>
+            <select class="select select-bordered select-sm" data-home-bg-mode>
+              {
+                ROTATION_OPTIONS.map((option) => (
+                  <option value={option.value}>{option.label}</option>
+                ))
+              }
+            </select>
+          </label>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs w-full text-base-content"
+          data-home-settings-reset
+        >
+          恢复默认
+        </button>
       </div>
-
-      {
-        backgrounds.length > 0 && (
-          <fieldset>
-            <legend class="mb-2 text-xs text-base-content/70">背景图片</legend>
-            <div class="grid grid-cols-3 gap-2">
-              {backgrounds.map((item) => (
-                <label class="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="home-background"
-                    value={item.id}
-                    class="peer sr-only"
-                    data-home-bg-option
-                  />
-                  <img
-                    src={`${item.path}-960.webp`}
-                    alt={item.name}
-                    width="960"
-                    height="640"
-                    loading="lazy"
-                    class="h-12 w-full rounded-lg object-cover ring-2 ring-transparent transition peer-checked:ring-primary peer-focus-visible:ring-primary"
-                  />
-                  <span class="mt-1 block truncate text-center text-[0.65rem] text-base-content/70 peer-checked:text-primary">
-                    {item.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )
-      }
-
-      <div class="flex flex-col gap-2">
-        <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
-          <span>一言轮换</span>
-          <select class="select select-bordered select-sm" data-home-quote-mode>
-            {
-              ROTATION_OPTIONS.map((option) => (
-                <option value={option.value}>{option.label}</option>
-              ))
-            }
-          </select>
-        </label>
-
-        <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
-          <span>背景轮换</span>
-          <select class="select select-bordered select-sm" data-home-bg-mode>
-            {
-              ROTATION_OPTIONS.map((option) => (
-                <option value={option.value}>{option.label}</option>
-              ))
-            }
-          </select>
-        </label>
-      </div>
-
-      <button
-        type="button"
-        class="btn btn-ghost btn-xs w-full text-base-content"
-        data-home-settings-reset
-      >
-        恢复默认
-      </button>
     </div>
   </dialog>
 </div>

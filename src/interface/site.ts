@@ -120,8 +120,13 @@ export interface Config {
 export interface HomeBackgroundItem {
   id: string;
   name: string;
-  /** public/ 下的路径，不带扩展名（-960 / -1920 两个宽度由组件拼出来） */
-  path: string;
+  /**
+   * public/ 下的路径，不带扩展名（-960 / -1920 两个宽度由组件拼出来）。
+   * 与 url 二选一：本地静态图用 path，动态壁纸（必应今日/随机）用 url。
+   */
+  path?: string;
+  /** 动态壁纸的完整图片地址（如 api.bimg.cc 的 302 跳转源），与 path 二选一 */
+  url?: string;
 }
 
 export interface HomeBackgroundConfig {

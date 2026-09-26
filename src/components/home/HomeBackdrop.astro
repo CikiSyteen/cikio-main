@@ -31,8 +31,16 @@ const { backgrounds, defaultId, mode } = Astro.props as HomeBackdropProps;
 
 const active =
   backgrounds.find((item) => item.id === defaultId) ?? backgrounds[0];
-const srcsetOf = (path: string) =>
-  `${path}-960.webp 960w, ${path}-1920.webp 1920w`;
+
+/** 静态图按 -960 / -1920 拼 srcset；url 型动态壁纸没有多宽度，交给浏览器 */
+const srcsetOf = (item: HomeBackgroundItem) =>
+  item.path
+    ? `${item.path}-960.webp 960w, ${item.path}-1920.webp 1920w`
+    : undefined;
+const srcOf = (item: HomeBackgroundItem) =>
+  item.url ?? `${item.path}-1920.webp`;
+const dimsOf = (item: HomeBackgroundItem) =>
+  item.url ? { width: 1920, height: 1080 } : { width: 1920, height: 1280 };
 ---
 
 <div class="home-backdrop" aria-hidden="true">
@@ -40,12 +48,12 @@ const srcsetOf = (path: string) =>
     {
       active && (
         <img
-          src={`${active.path}-1920.webp`}
-          srcset={srcsetOf(active.path)}
+          src={srcOf(active)}
+          srcset={srcsetOf(active)}
           sizes="100vw"
           alt=""
-          width="1920"
-          height="1280"
+          width={dimsOf(active).width}
+          height={dimsOf(active).height}
           loading="eager"
           decoding="async"
           fetchpriority="high"
@@ -90,6 +98,19 @@ const srcsetOf = (path: string) =>
 
   const SETTINGS_KEY = "cikio-home-settings";
 
+  /** 背景条目：本地静态图带 path，动态壁纸（必应今日/随机）带 url */
+  interface BgItem {
+    id: string;
+    path?: string;
+    url?: string;
+  }
+
+  interface BgPayload {
+    backgrounds: BgItem[];
+    defaultId: string;
+    mode: string;
+  }
+
   // 当前正在显示的是哪一层；模块级变量在同一次会话内跨站内换页保留
   let activeLayer: "a" | "b" = "a";
   let rotationTimer: number | undefined;
@@ -102,7 +123,7 @@ const srcsetOf = (path: string) =>
     }
   }
 
-  function readPayload(): { backgrounds: { id: string; path: string }[]; defaultId: string; mode: string } | null {
+  function readPayload(): BgPayload | null {
     const element = document.querySelector<HTMLScriptElement>("[data-home-bg-data]");
     if (!element?.textContent) return null;
     try {
@@ -120,10 +141,17 @@ const srcsetOf = (path: string) =>
     return layerOf(name)?.querySelector("img") ?? null;
   }
 
-  function applySource(img: HTMLImageElement, path: string, id: string): void {
-    img.dataset.bgId = id;
-    img.srcset = `${path}-960.webp 960w, ${path}-1920.webp 1920w`;
-    img.src = `${path}-1920.webp`;
+  function applySource(img: HTMLImageElement, item: BgItem): void {
+    img.dataset.bgId = item.id;
+    if (item.url) {
+      // 动态壁纸（必应今日/随机）：清掉静态 srcset；加时间戳绕过 <img> 的
+      // 同 URL 内存缓存 —— 「随机」每次都要真的换一张，302 的 no-cache 只管跳转本身
+      img.srcset = "";
+      img.src = `${item.url}${item.url.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+      return;
+    }
+    img.srcset = `${item.path}-960.webp 960w, ${item.path}-1920.webp 1920w`;
+    img.src = `${item.path}-1920.webp`;
   }
 
   /**
@@ -138,11 +166,7 @@ const srcsetOf = (path: string) =>
   }
 
   /** 该显示哪一张：访客显式选过就一直是那张，没选过才交给轮换方式决定 */
-  function wantedId(payload: {
-    backgrounds: { id: string }[];
-    defaultId: string;
-    mode: string;
-  }): string {
+  function wantedId(payload: BgPayload): string {
     const settings = readSettings();
     if (payload.backgrounds.some((item) => item.id === settings.bg)) {
       return settings.bg as string;
@@ -160,23 +184,8 @@ const srcsetOf = (path: string) =>
     return payload.defaultId;
   }
 
-  /** 无过场切换：只在首次渲染时用（整页本来就在 300ms 淡入里，看不出来） */
-  function showImmediately(payload: { backgrounds: { id: string; path: string }[] }, id: string): void {
-    const item = payload.backgrounds.find((entry) => entry.id === id);
-    if (!item) return;
-
-    activeLayer = "a";
-    layerOf("b")?.classList.remove("is-active");
-    const layerA = layerOf("a");
-    layerA?.classList.add("is-active");
-
-    const img = imageOf("a");
-    if (!img || img.dataset.bgId === id) return;
-    applySource(img, item.path, id);
-  }
-
-  /** 带过场的切换：齿轮面板改图、以及自动轮换走这里 */
-  function switchWithFade(payload: { backgrounds: { id: string; path: string }[] }, id: string): void {
+  /** 带过场的切换：首次渲染、齿轮面板改图、以及自动轮换都走这里 */
+  function switchWithFade(payload: BgPayload, id: string): void {
     const item = payload.backgrounds.find((entry) => entry.id === id);
     if (!item) return;
     if (imageOf(activeLayer)?.dataset.bgId === id) return;
@@ -186,7 +195,7 @@ const srcsetOf = (path: string) =>
     const nextImage = imageOf(nextName);
     if (!nextLayer || !nextImage) return;
 
-    applySource(nextImage, item.path, id);
+    applySource(nextImage, item);
 
     const swap = () => {
       nextLayer.classList.add("is-active");
@@ -194,7 +203,8 @@ const srcsetOf = (path: string) =>
       activeLayer = nextName;
     };
 
-    // 新图已经解码完（换回看过的图）就直接切，否则等 load，避免闪一下底色
+    // 新图已经解码完（换回看过的图）就直接切，否则等 load，避免闪一下底色。
+    // 动态壁纸要等网络图返回，同样落在这里。
     if (nextImage.complete && nextImage.naturalWidth > 0) {
       swap();
     } else {
@@ -204,7 +214,7 @@ const srcsetOf = (path: string) =>
 
   /** 只有定时模式需要起定时器；不轮换 / 每日 / 每次刷新都不起 */
   function startRotation(
-    payload: { backgrounds: { id: string; path: string }[] },
+    payload: BgPayload,
     rotation: Rotation,
   ): void {
     window.clearInterval(rotationTimer);
@@ -223,7 +233,10 @@ const srcsetOf = (path: string) =>
   function initBackdrop(): void {
     const payload = readPayload();
     if (!payload || payload.backgrounds.length === 0) return;
-    showImmediately(payload, wantedId(payload));
+    // 首次渲染也走带过场的切换：目标与 SSR 渲染的默认图相同时它自己会 no-op；
+    // 不同时（访客选过别张 / 轮换选中 / 必应动态壁纸要走网络），等新图 load 完
+    // 才交换透明度，SSR 的那张会一直垫底，不会闪出页面底色。
+    switchWithFade(payload, wantedId(payload));
     startRotation(payload, rotationOf(payload));
   }
 

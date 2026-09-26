@@ -389,7 +389,8 @@ code {
 // 这里只重置默认外观、把遮罩定成深色薄纱，再补一条"居中放大"的入场动画。
 // 尺寸自己给死，居中交给 UA 的 margin: auto。
 .home-settings-dialog {
-  width: min(22rem, calc(100vw - 2rem));
+  // 青柠起始页式的缩略图网格需要横向空间：桌面 5 列，宽出原来的 22rem 一档
+  width: min(36rem, calc(100vw - 2rem));
   max-width: none;
   max-height: calc(100vh - 3rem);
   padding: 0;
