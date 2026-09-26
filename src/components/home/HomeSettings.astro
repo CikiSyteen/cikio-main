@@ -16,7 +16,11 @@ import { Icon } from "astro-icon/components";
  * 全部存在 localStorage 的 `cikio-home-settings` 里，不改服务端任何东西 ——
  * 也就是说每个访客看到的是自己选的画面。改完通过 `cikio:home-settings`
  * 自定义事件通知壁纸层与一言卡片即时生效（它们之间不共享模块作用域，
- * 组件各自的 <script> 被打包成独立文件，只能靠 window 上的事件通信）。
+ * 组件各自的 script 块会被打包成独立文件，只能靠 window 上的事件通信）。
+ *
+ * 注意：本文件的注释里禁止出现尖括号形式的 script 标签字面量。Vite 的依赖扫描
+ * 会把它当成真实脚本标签，把后面的中文当代码解析并抛 PARSE_ERROR，导致整个 dev
+ * 环境的依赖预构建被跳过（表现为依赖退回按需加载、CJS 包在浏览器端报错）。
  *
  * 候选值与默认值来自 config/home.background.yaml，所以"默认长什么样"是站点拥有者说了算。
  */
