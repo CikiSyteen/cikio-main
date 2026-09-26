@@ -19,15 +19,19 @@ owner: CikiSyteen
 # 精选项目：页面顶部的大卡。repo 只写仓库名（作者取上面的 owner）。
 # 不要这节就整段注释掉或删除。
 featured:
-  repo: cikio-main
+  repo: sky-stones
 
 # 我的仓库：卡片网格，按数组顺序展示。
 # 想加项目就在这里追加一项；pinned 为 true 时卡片右上角显示「已置顶」。
 repos:
   - repo: cikio-main
+    pinned: false
+  - repo: sky-stones
     pinned: true
-  # - repo: another-project
-  #   pinned: false
+  - repo: BuyWise
+    pinned: false
+  - repo: ciki-hub
+    pinned: false
 
 # 底部跳转按钮。不要按钮就删掉这一节。
 more:
