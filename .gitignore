@@ -24,6 +24,9 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+# Obsidian vault 的本地状态（工作区布局、缓存、社区插件二进制），各设备各自一份，不进仓库
+.obsidian/
+
 # pagefind
 public/pagefind/
 
