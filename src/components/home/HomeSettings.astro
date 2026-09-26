@@ -24,10 +24,6 @@ import { Icon } from "astro-icon/components";
 export interface HomeSettingsProps {
   backgrounds: HomeBackgroundItem[];
   defaultBackground: string;
-  /** 背景默认轮换方式，取值见 @utils/homeRotation */
-  backgroundMode: string;
-  /** 一言默认轮换方式，取值见 @utils/homeRotation */
-  quoteMode: string;
 }
 
 // 必须显式断言：Astro.props 的类型是 Record<string, any>，不写 as 的话
@@ -37,14 +33,10 @@ export interface HomeSettingsProps {
 const {
   backgrounds = [],
   defaultBackground = "",
-  backgroundMode = "none",
-  quoteMode = "refresh",
 } = Astro.props as HomeSettingsProps;
 
 const defaults = {
   bg: defaultBackground,
-  quoteMode,
-  bgMode: backgroundMode,
 };
 
 /** 本地静态图（有 path）与动态壁纸（有 url，必应今日/随机）分开渲染 */
@@ -164,8 +156,8 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
                         />
                       )}
                       <div class="min-w-0">
-                        <p class="truncate text-sm font-semibold">{item.name}</p>
-                        <p class="truncate text-xs text-base-content/60">
+                        <p class="truncate text-sm font-semibold text-base-content">{item.name}</p>
+                        <p class="truncate text-xs text-base-content/70">
                           {isRandom(item) ? "每次都换一张 · 来源必应" : "每天自动更新 · 来源必应"}
                         </p>
                       </div>
@@ -179,30 +171,6 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
             </section>
           )
         }
-
-        <div class="flex flex-col gap-2">
-          <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
-            <span>一言轮换</span>
-            <select class="select select-bordered select-sm" data-home-quote-mode>
-              {
-                ROTATION_OPTIONS.map((option) => (
-                  <option value={option.value}>{option.label}</option>
-                ))
-              }
-            </select>
-          </label>
-
-          <label class="flex items-center justify-between gap-2 text-xs text-base-content/80">
-            <span>背景轮换</span>
-            <select class="select select-bordered select-sm" data-home-bg-mode>
-              {
-                ROTATION_OPTIONS.map((option) => (
-                  <option value={option.value}>{option.label}</option>
-                ))
-              }
-            </select>
-          </label>
-        </div>
 
         <button
           type="button"
@@ -224,7 +192,7 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
 ></script>
 
 <script>
-  import { ROTATION_OPTIONS, normalizeRotation } from "@utils/homeRotation";
+  import { ROTATION_OPTIONS } from "@utils/homeRotation";
 
   const SETTINGS_KEY = "cikio-home-settings";
 
@@ -253,7 +221,7 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
     }
   }
 
-  function readDefaults(): { bg?: string; quoteMode?: string; bgMode?: string } | null {
+  function readDefaults(): { bg?: string } | null {
     const element = document.querySelector<HTMLScriptElement>("[data-home-settings-defaults]");
     if (!element?.textContent) return null;
     try {
@@ -286,25 +254,13 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
   // 将来若同时渲染两个实例（比如移动端另做一份），两个面板会互相覆盖选中态。
   function syncPanel(
     root: HTMLElement,
-    defaults: { bg?: string; quoteMode?: string; bgMode?: string },
+    defaults: { bg?: string },
     settings: HomeSettings,
   ): void {
     const background = settings.bg ?? defaults.bg ?? "";
     root.querySelectorAll<HTMLInputElement>("[data-home-bg-option]").forEach((input) => {
       input.checked = input.value === background;
     });
-
-    setSelect(
-      root.querySelector<HTMLSelectElement>("[data-home-quote-mode]"),
-      normalizeRotation(settings.quoteMode ?? settings.quoteInterval ?? defaults.quoteMode),
-      normalizeRotation(defaults.quoteMode),
-    );
-
-    setSelect(
-      root.querySelector<HTMLSelectElement>("[data-home-bg-mode]"),
-      normalizeRotation(settings.bgMode ?? settings.bgInterval ?? defaults.bgMode, "none"),
-      normalizeRotation(defaults.bgMode, "none"),
-    );
   }
 
   function initSettings(): void {
@@ -352,22 +308,6 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
         broadcast();
       };
     });
-
-    const quoteSelect = root.querySelector<HTMLSelectElement>("[data-home-quote-mode]");
-    if (quoteSelect) {
-      quoteSelect.onchange = () => {
-        writeSettings({ ...readSettings(), quoteMode: quoteSelect.value });
-        broadcast();
-      };
-    }
-
-    const bgSelect = root.querySelector<HTMLSelectElement>("[data-home-bg-mode]");
-    if (bgSelect) {
-      bgSelect.onchange = () => {
-        writeSettings({ ...readSettings(), bgMode: bgSelect.value });
-        broadcast();
-      };
-    }
 
     const resetButton = root.querySelector<HTMLButtonElement>("[data-home-settings-reset]");
     if (resetButton) {

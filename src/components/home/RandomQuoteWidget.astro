@@ -69,7 +69,7 @@ const first = quotes[0];
 ></script>
 
 <script>
-  import { dailyRotationIndex, normalizeRotation, parseRotation } from "@utils/homeRotation";
+  import { dailyRotationIndex, parseRotation } from "@utils/homeRotation";
 
   const SETTINGS_KEY = "cikio-home-settings";
 
@@ -93,20 +93,9 @@ const first = quotes[0];
   }
 
   /**
-   * 访客的设置优先于配置。一并兼容旧键 quoteInterval（老访客存的是裸秒数）：
-   * 直接换键名会让他们的选择被静默重置。
+   * 一言统一按「每次刷新随机一条」处理，不再提供轮换设置项。
+   * 手动「换一条」也能继续用，逻辑在 initQuote 里。
    */
-  function modeOf(payload: QuotePayload): string {
-    try {
-      const settings = JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || "{}");
-      if (settings.quoteMode != null) return normalizeRotation(settings.quoteMode);
-      if (settings.quoteInterval != null) return normalizeRotation(settings.quoteInterval);
-    } catch {
-      /* 忽略，退回配置里的默认值 */
-    }
-    return normalizeRotation(payload.mode);
-  }
-
   function pickIndex(total: number): number {
     if (total <= 1) return 0;
     let index = lastIndex;
@@ -136,7 +125,7 @@ const first = quotes[0];
     if (!payload || payload.quotes.length === 0) return;
 
     const total = payload.quotes.length;
-    const rotation = parseRotation(modeOf(payload));
+    const rotation = parseRotation("refresh");
 
     window.clearInterval(timer);
     timer = undefined;
