@@ -211,6 +211,31 @@ const payload = JSON.stringify({ postsByDate, lunar, holidays });
       });
     }
 
+    // 切回"当前真实月份"且无当日更新时，把「最近一次更新」提示摆回来。
+    // 抽成函数是因为 render() 每次切月都会清掉详情（见 render 内的 clearDetail），
+    // 若不在这里回退，切走再切回来详情区会一直空着，让人以为功能坏了。
+    function showDefaultDetail(): void {
+      if (!detail) return;
+      // 只针对当前真实月份：其它月份的「本月暂无更新」说法不成立
+      const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
+      if (!isCurrentMonth) return;
+      // 当月已有更新时保持点开前的空态（与首屏一致），不强行回退
+      if (postsByDate[todayKey]?.length) return;
+
+      const keys = Object.keys(postsByDate).sort();
+      const latestKey = keys[keys.length - 1];
+      const latestPosts = latestKey ? (postsByDate[latestKey] ?? []) : [];
+      if (latestKey && latestPosts.length > 0) {
+        // 先让 showDetail 清空并填好内容，再把前缀插到最前面
+        // （showDetail 开头会 detail.textContent = ""，先插会被清掉）
+        showDetail(latestKey, latestPosts);
+        const prefix = document.createElement("span");
+        prefix.className = "mr-1 text-base-content/65";
+        prefix.textContent = "本月暂无更新 · 最近一次：";
+        detail.prepend(prefix);
+      }
+    }
+
     function render(): void {
       label.textContent = `${viewYear}年${viewMonth + 1}月`;
       grid.textContent = "";
@@ -294,6 +319,9 @@ const payload = JSON.stringify({ postsByDate, lunar, holidays });
 
         grid.append(host);
       }
+
+      // 切月后回退详情：回到当前真实月份且无当日更新时，重新摆出「最近一次更新」
+      showDefaultDetail();
     }
 
     function shiftMonth(step: number): void {
@@ -313,23 +341,6 @@ const payload = JSON.stringify({ postsByDate, lunar, holidays });
     if (nextButton) nextButton.onclick = () => shiftMonth(1);
 
     render();
-
-    // 博客不是天天写，当前月往往一次更新都没有；详情区空着会让人以为功能坏了，
-    // 所以本月无更新时默认把「最近一次更新」摆出来。
-    const keys = Object.keys(postsByDate).sort();
-    const latestKey = keys[keys.length - 1];
-    if (latestKey && !postsByDate[todayKey]?.length) {
-      const latestPosts = postsByDate[latestKey] ?? [];
-      if (latestPosts.length > 0 && detail) {
-        // 先让 showDetail 清空并填好内容，再把前缀插到最前面
-        // （showDetail 开头会 detail.textContent = ""，先插会被清掉）
-        showDetail(latestKey, latestPosts);
-        const prefix = document.createElement("span");
-        prefix.className = "mr-1 text-base-content/65";
-        prefix.textContent = "本月暂无更新 · 最近一次：";
-        detail.prepend(prefix);
-      }
-    }
   }
 
   document.addEventListener("astro:page-load", initHomeCalendar);
