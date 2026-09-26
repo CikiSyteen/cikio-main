@@ -236,13 +236,13 @@ export const PROJECT_MORE = projectConfig.more ?? null;
 
 /** 友链：互换链接的朋友站点（头像 + 简介卡片） */
 export const FRIEND_LINKS =
-  readOptionalConfig<FriendLinksConfig>(friendLinksPath, { items: [] })?.items ??
-  [];
+  readOptionalConfig<FriendLinksConfig>(friendLinksPath, { items: [] })
+    ?.items ?? [];
 
 /** 友站：渲染成带在线状态检测的小徽章 */
 export const FRIEND_SITES =
-  readOptionalConfig<FriendSitesConfig>(friendSitesPath, { items: [] })?.items ??
-  [];
+  readOptionalConfig<FriendSitesConfig>(friendSitesPath, { items: [] })
+    ?.items ?? [];
 
 /** 常用资源：渲染成链接卡（字段与 LinkCard 组件对齐） */
 export const FRIEND_RESOURCES =

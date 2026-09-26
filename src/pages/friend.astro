@@ -1,4 +1,7 @@
 ---
+// 友链 / 友站 / 常用资源分别来自 config/ 下的独立配置文件：
+// friend.links.yaml、friend.sites.yaml、friend.resources.yaml
+import { FRIEND_LINKS, FRIEND_RESOURCES, FRIEND_SITES } from "@config";
 import { Icon } from "astro-icon/components";
 import MainCard from "@/components/MainCard.astro";
 import FriendCard from "@/components/mdx/FriendCard.astro";
@@ -6,9 +9,6 @@ import LinkCard from "@/components/mdx/LinkCard.astro";
 import Showcase from "@/components/mdx/Showcase.astro";
 import CardGroup from "@/components/temple/CardGroup.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-// 友链 / 友站 / 常用资源分别来自 config/ 下的独立配置文件：
-// friend.links.yaml、friend.sites.yaml、friend.resources.yaml
-import { FRIEND_LINKS, FRIEND_RESOURCES, FRIEND_SITES } from "@config";
 ---
 
 <BaseLayout title="友链">

@@ -1,9 +1,4 @@
 ---
-import { Icon } from "astro-icon/components";
-import MainCard from "@/components/MainCard.astro";
-import GitHubStats from "@/components/mdx/GitHubStats.astro";
-import RepositoryCard from "@/components/mdx/RepositoryCard.astro";
-import BaseLayout from "@/layouts/BaseLayout.astro";
 // 项目页内容全部来自 config/project.yaml：加项目、换账号都只改那个文件
 import {
   PROJECT_FEATURED_REPO,
@@ -11,6 +6,11 @@ import {
   PROJECT_OWNER,
   PROJECT_REPOS,
 } from "@config";
+import { Icon } from "astro-icon/components";
+import MainCard from "@/components/MainCard.astro";
+import GitHubStats from "@/components/mdx/GitHubStats.astro";
+import RepositoryCard from "@/components/mdx/RepositoryCard.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
 ---
 
 <BaseLayout title="项目">
