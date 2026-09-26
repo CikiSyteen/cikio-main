@@ -41,3 +41,6 @@ public/pagefind/
 
 # 独立的重建项目：它有自己的 git 仓库和远程分支，不应作为本仓库的子模块
 fuwari-main/
+
+# 壁纸/图标的原始素材（成品 webp/favicon 已落在 public/，源图只留本地）
+image/
