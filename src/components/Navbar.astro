@@ -6,6 +6,9 @@ import ThemeToggle from "./widgets/ThemeToggle.astro";
 // Get current path to determine active link
 const currentPath = Astro.url.pathname;
 
+// 仅首页（hero 版式）在移动端顶栏右侧放「设置」齿轮；其它页面不渲染 HomeSettings
+const { home = false } = Astro.props;
+
 // Type safely process SITE_MENU before rendering
 type SubMenuItem = {
   id: string;
@@ -48,11 +51,24 @@ const typedMenu = SITE_MENU as MenuItem[];
 
   <div class="navbar-end">
     <ThemeToggle className="navbar-theme" />
+    {
+      home && (
+        <button
+          type="button"
+          data-home-settings-open
+          aria-haspopup="dialog"
+          aria-label="首页设置"
+          class="btn btn-ghost btn-circle btn-md"
+        >
+          <Icon name="lucide:settings" class="h-5 w-5" />
+        </button>
+      )
+    }
   </div>
 
   <div
     id="header-menu"
-    class="absolute top-full left-0 w-full transform -translate-x-full transition-transform duration-300 ease-in-out bg-base-100 shadow-lg"
+    class="absolute top-full left-0 w-full transform mobile-menu-closed transition-transform duration-300 ease-in-out bg-base-100 shadow-lg"
   >
     <ul class="menu bg-transparent w-full p-2">
       {
@@ -116,10 +132,10 @@ const typedMenu = SITE_MENU as MenuItem[];
     // Toggle menu visibility
     menuToggle.addEventListener("change", () => {
       if (menuToggle.checked) {
-        headerMenu.classList.remove("-translate-x-full");
+        headerMenu.classList.remove("mobile-menu-closed");
         headerMenu.classList.add("translate-x-0");
       } else {
-        headerMenu.classList.add("-translate-x-full");
+        headerMenu.classList.add("mobile-menu-closed");
         headerMenu.classList.remove("translate-x-0");
       }
     });
@@ -128,17 +144,17 @@ const typedMenu = SITE_MENU as MenuItem[];
       if (!navbar || !headerMenu || !menuToggle) return;
 
       if (window.scrollY > lastScrollY && window.scrollY > 50) {
-        navbar.classList.add("-translate-y-full", "duration-500");
+        navbar.classList.add("navbar-hidden", "duration-500");
         navbar.classList.remove("translate-y-0");
 
         // Close menu when hiding navbar
         if (menuToggle.checked) {
           menuToggle.checked = false;
-          headerMenu.classList.add("-translate-x-full");
+          headerMenu.classList.add("mobile-menu-closed");
           headerMenu.classList.remove("translate-x-0");
         }
       } else if (window.scrollY < lastScrollY) {
-        navbar.classList.remove("-translate-y-full");
+        navbar.classList.remove("navbar-hidden");
         navbar.classList.add("translate-y-0", "duration-300");
       }
 
@@ -163,9 +179,9 @@ const typedMenu = SITE_MENU as MenuItem[];
       if (!navbar || !headerMenu || !menuToggle) return;
 
       const target = event.target as Node;
-      if (!navbar.contains(target) && headerMenu.classList.contains("translate-x-0")) {
+      if (!navbar.contains(target) && !headerMenu.classList.contains("mobile-menu-closed")) {
         menuToggle.checked = false;
-        headerMenu.classList.add("-translate-x-full");
+        headerMenu.classList.add("mobile-menu-closed");
         headerMenu.classList.remove("translate-x-0");
       }
     };
@@ -188,7 +204,7 @@ const typedMenu = SITE_MENU as MenuItem[];
 
         if (menuToggle.checked) {
           menuToggle.checked = false;
-          headerMenu.classList.add("-translate-x-full");
+          headerMenu.classList.add("mobile-menu-closed");
           headerMenu.classList.remove("translate-x-0");
         }
       });

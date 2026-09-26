@@ -498,6 +498,22 @@ code {
   color: oklch(0.72 0.13 230);
 }
 
+// ==================== 移动端顶栏与下拉菜单的关闭态 ====================
+//
+// 这两个关闭态不能只用 -translate-x-full / -translate-y-full：那只会把元素右/下缘
+// 推到视窗边缘（x=0 / y=0），而元素自带的 shadow-lg 会向外侧再延伸约 15px，
+// 于是收起时仍能看到一条阴影残影。这里额外多移 1.5rem（24px），把阴影也一起推出视窗。
+//
+// 用 id+class 选择器（#header-menu / #navbar）抬高特异性，稳稳压过 Tailwind 的
+// .translate-x-0 / .translate-y-0，保证打开态（translate 0）和关闭态互不打架。
+#header-menu.mobile-menu-closed {
+  transform: translateX(calc(-100% - 1.5rem));
+}
+
+#navbar.navbar-hidden {
+  transform: translateY(calc(-100% - 1.5rem));
+}
+
 // ==================== 站内换页过渡 ====================
 //
 // Astro 默认的 root 交叉淡入偏"硬"（卸载与装载同时开始、时长很短），

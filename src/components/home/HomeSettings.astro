@@ -54,7 +54,7 @@ const defaults = {
 -->
 <div data-home-settings>
   <!-- 固定在视口右上角；移动端下移到导航胶囊下方（胶囊占满宽度，会盖住 top-4 的位置） -->
-  <div class="fixed right-3 top-[5.25rem] z-40 md:right-5 md:top-5">
+  <div class="hidden md:block fixed right-5 top-5 z-40">
     <button
       type="button"
       data-home-settings-open
@@ -260,12 +260,14 @@ const defaults = {
 
     // showModal 在已打开时会抛 InvalidStateError；换页后 DOM 被替换，
     // 这里用 on* 赋值天然幂等，不会把同一个处理器叠好几层。
-    const openButton = root.querySelector<HTMLButtonElement>("[data-home-settings-open]");
-    if (openButton && dialog) {
-      openButton.onclick = () => {
-        if (!dialog.open) dialog.showModal();
+    // 设置触发按钮可能在组件内部（桌面端浮动按钮），也可能在移动端顶栏（Navbar 里的齿轮，
+    // 它不在 [data-home-settings] 作用域内），所以按属性全局绑定，而非只查 root。
+    const openButtons = document.querySelectorAll<HTMLButtonElement>("[data-home-settings-open]");
+    openButtons.forEach((btn) => {
+      btn.onclick = () => {
+        if (dialog && !dialog.open) dialog.showModal();
       };
-    }
+    });
 
     const closeButton = root.querySelector<HTMLButtonElement>("[data-home-settings-close]");
     if (closeButton && dialog) {
