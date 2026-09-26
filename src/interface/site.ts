@@ -140,8 +140,8 @@ export interface HomeBackgroundConfig {
 }
 
 export interface HomeQuoteItem {
+  /** 一言正文。作者/出处字段已移除：卡片只展示正文，高度留给文字 */
   text: string;
-  author?: string;
 }
 
 export interface HomeQuotesConfig {

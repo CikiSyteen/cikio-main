@@ -11,11 +11,16 @@ import WidgetCard from "./WidgetCard.astro";
  * 轮换方式的默认值来自配置，访客可以用右上角齿轮面板覆盖（存 localStorage）。
  * 四种方式（不轮换 / 每日 / 每次刷新 / 每 N 秒）的定义与解析见 @utils/homeRotation。
  *
- * 换一条用「换一条」按钮手动触发；按钮放在卡片内而不是标题栏，
- * 因为 WidgetCard 的标题栏右侧位置已经被「更多」链接占用了。
+ * 换一条用「换一条」按钮手动触发；按钮放在标题栏右上角（WidgetCard 的 actions 插槽），
+ * 不再占用正文高度。
  *
- * 卡片的尺寸由 index.astro 固定（sm:h-[10.5rem]），所以正文与作者行之间用
- * justify-between 分配空白，而不是堆在上方留一片空。
+ * 卡片只展示正文，不再展示作者 —— 省下的整行（作者行 24px + gap-3 12px）全部让给正文，
+ * 正文区从 52px 涨到 88px，正好放得下 3 行 text-sm/leading-relaxed。
+ *
+ * 正文刻意不加 text-balance：它会把每行压到「刚好不折行」的宽度，行尾留出一片空白，
+ * 看上去就像提前断句。浏览器默认换行会把每行填满，同样的字数更省行。
+ *
+ * 卡片的尺寸仍由 index.astro 固定（sm:h-[10.5rem]），请按 3 行 ≈ 50 字控制单条长度。
  */
 
 export interface RandomQuoteWidgetProps {
@@ -37,35 +42,26 @@ const first = quotes[0];
 ---
 
 <WidgetCard id="home-quote" title="一言" icon="lucide:quote" class={className}>
-  <div class="flex flex-1 flex-col justify-between gap-3">
-    <blockquote
-      data-quote-text
-      class="text-balance text-sm leading-relaxed text-base-content/85"
-    >
-      {first?.text ?? ""}
-    </blockquote>
+  <button
+    slot="actions"
+    type="button"
+    data-quote-next
+    class="btn btn-ghost btn-xs shrink-0 gap-1 text-base-content/70 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+  >
+    <Icon name="lucide:refresh-cw" class="h-3.5 w-3.5" aria-hidden="true" />
+    <span>换一条</span>
+  </button>
 
-    <div class="flex items-end justify-between gap-3">
-      <span data-quote-author class="min-w-0 text-xs text-base-content/60">
-        {first?.author ? `—— ${first.author}` : ""}
-      </span>
-      <button
-        type="button"
-        data-quote-next
-        class="btn btn-ghost btn-xs shrink-0 gap-1 text-base-content/70 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-      >
-        <Icon name="lucide:refresh-cw" class="h-3.5 w-3.5" aria-hidden="true" />
-        <span>换一条</span>
-      </button>
-    </div>
-  </div>
+  <blockquote data-quote-text class="text-sm leading-relaxed text-base-content/85">
+    {first?.text ?? ""}
+  </blockquote>
 </WidgetCard>
 
 <script
   type="application/json"
   data-quote-data
   is:inline
-  set:html={JSON.stringify({ quotes, mode })}
+  set:html={JSON.stringify({ quotes: quotes.map((item) => item.text), mode })}
 ></script>
 
 <script>
@@ -78,7 +74,8 @@ const first = quotes[0];
   let lastIndex = -1;
 
   interface QuotePayload {
-    quotes: { text: string; author?: string }[];
+    /** 只传正文；作者字段已不再展示，不必下发到客户端 */
+    quotes: string[];
     mode: string;
   }
 
@@ -108,16 +105,11 @@ const first = quotes[0];
   }
 
   function applyQuote(payload: QuotePayload, index: number): void {
-    const item = payload.quotes[index];
-    if (!item) return;
+    const text = payload.quotes[index];
+    if (!text) return;
 
     const textElement = document.querySelector("[data-quote-text]");
-    if (textElement) textElement.textContent = item.text;
-
-    const authorElement = document.querySelector("[data-quote-author]");
-    if (authorElement) {
-      authorElement.textContent = item.author ? `—— ${item.author}` : "";
-    }
+    if (textElement) textElement.textContent = text;
   }
 
   function initQuote(): void {

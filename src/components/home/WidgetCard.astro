@@ -25,6 +25,10 @@ export interface WidgetCardProps {
   /** 「更多」链接文案 */
   hrefLabel?: string;
   /**
+   * 标题栏右侧还可以通过具名插槽 actions 塞入卡片自己的动作（如「换一条」按钮），
+   * 排在「更多」链接左边。只有这一个插槽时标题栏同样会渲染。
+   */
+  /**
    * 是否自带入场动画，默认 true。
    * 外层区块已经统一动画时置 false：父子各挂一个 .home-enter，两层 opacity
    * 会相乘（观感上"发闷"），外层的 animation-delay 也会形同虚设。
@@ -45,6 +49,8 @@ const {
 } = Astro.props as WidgetCardProps;
 
 const headingId = `${id}-title`;
+// 只给 actions 插槽、不给标题和链接时，标题栏也得渲染出来放这个动作
+const hasActions = Astro.slots.has("actions");
 ---
 
 <section
@@ -57,7 +63,7 @@ const headingId = `${id}-title`;
   ]}
 >
   {
-    (title || href) && (
+    (title || href || hasActions) && (
       <header class="flex items-center justify-between gap-3">
         {title && (
           <h2 id={headingId} class="flex items-center gap-2 text-base font-bold">
@@ -66,15 +72,19 @@ const headingId = `${id}-title`;
           </h2>
         )}
 
-        {href && (
-          <a
-            href={href}
-            class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-base-content/70 transition-colors duration-200 hover:bg-base-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-          >
-            <span>{hrefLabel}</span>
-            <Icon name="lucide:arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
-          </a>
-        )}
+        {/* 右侧动作区：卡片自己的按钮（actions 插槽）在前，「更多」链接在后 */}
+        <div class="ml-auto flex shrink-0 items-center gap-1">
+          <slot name="actions" />
+          {href && (
+            <a
+              href={href}
+              class="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs text-base-content/70 transition-colors duration-200 hover:bg-base-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <span>{hrefLabel}</span>
+              <Icon name="lucide:arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          )}
+        </div>
       </header>
     )
   }
