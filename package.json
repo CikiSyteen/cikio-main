@@ -23,7 +23,8 @@
     "biome:format": "biome format ./src",
     "biome:summary": "biome check --reporter summary ./src",
     "format": "biome format --write ./src",
-    "check-all": "pnpm astro-check && pnpm biome:check"
+    "check-all": "pnpm astro-check && pnpm biome:check",
+    "release:main": "bash scripts/publish-preview-to-main.sh"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.1",
