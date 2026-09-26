@@ -2,11 +2,15 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type {
   Config,
+  FriendLinksConfig,
+  FriendResourcesConfig,
+  FriendSitesConfig,
   HomeBackgroundConfig,
   HomeConfig,
   HomeHolidayMap,
   HomeHolidaysConfig,
   HomeQuotesConfig,
+  ProjectConfig,
 } from "@interfaces/site";
 // js-yaml 5 起为纯命名导出（无 default export）
 import { load as loadYaml } from "js-yaml";
@@ -17,10 +21,16 @@ import { normalizeRotation } from "./utils/homeRotation";
 
 // 配置文件路径（站点 YAML 配置统一放在 config/ 目录下）
 const configPath = path.resolve("config/frosti.config.yaml");
-// 首页（hero）配置拆成三个独立文件，各自可选：缺失时对应模块退回内置空值
+// 页面级配置拆成独立文件，各自可选：缺失时对应模块退回内置空值
+// 命名约定：<归属页面>[.<模块>].yaml —— 单模块页面用 project.yaml，
+// 一个页面里多块相互独立的数据就按模块拆开（home.* / friend.*）。
 const homeBackgroundPath = path.resolve("config/home.background.yaml");
 const homeQuotesPath = path.resolve("config/home.quotes.yaml");
 const homeHolidaysPath = path.resolve("config/home.holidays.yaml");
+const projectPath = path.resolve("config/project.yaml");
+const friendLinksPath = path.resolve("config/friend.links.yaml");
+const friendSitesPath = path.resolve("config/friend.sites.yaml");
+const friendResourcesPath = path.resolve("config/friend.resources.yaml");
 // 翻译文件路径
 const translationsPath = path.resolve("src/i18n/translations.yaml");
 // 读取并解析 YAML 文件
@@ -102,8 +112,11 @@ export function t(key: string): string {
 
 // ==================== 首页（hero）配置 ====================
 
-/** 读取一个首页配置文件；文件不存在就返回兜底值（这三块配置都是可选的） */
-function readHomeConfig<T>(filePath: string, fallback: T): T {
+/**
+ * 读取一个可选的配置文件：文件不存在就返回兜底值。
+ * 页面级配置（首页 / 项目 / 友链）都按这个约定处理，删掉文件等于留空，不会中断构建。
+ */
+function readOptionalConfig<T>(filePath: string, fallback: T): T {
   if (!fs.existsSync(filePath)) return fallback;
   return loadYaml(fs.readFileSync(filePath, "utf8")) as T;
 }
@@ -111,11 +124,11 @@ function readHomeConfig<T>(filePath: string, fallback: T): T {
 // 三个独立文件在这里合成同一个 homeConfig，下面的导出与组件都按原结构取用，
 // 拆分对上游完全透明。
 const homeConfig: HomeConfig = {
-  background: readHomeConfig<HomeBackgroundConfig>(homeBackgroundPath, {
+  background: readOptionalConfig<HomeBackgroundConfig>(homeBackgroundPath, {
     images: [],
   }),
-  quotes: readHomeConfig<HomeQuotesConfig>(homeQuotesPath, { items: [] }),
-  holidays: readHomeConfig<HomeHolidaysConfig>(homeHolidaysPath, {}),
+  quotes: readOptionalConfig<HomeQuotesConfig>(homeQuotesPath, { items: [] }),
+  holidays: readOptionalConfig<HomeHolidaysConfig>(homeHolidaysPath, {}),
 };
 
 /** 背景图候选列表（访客可在首页齿轮面板里切换） */
@@ -198,3 +211,41 @@ export const HOME_HOLIDAYS: HomeHolidayMap = (() => {
   }
   return map;
 })();
+
+// ==================== 项目页配置（config/project.yaml） ====================
+
+// 兜底：没有配置文件时 owner 为空，页面各区块自行跳过渲染，只剩标题卡
+const projectConfig: ProjectConfig = readOptionalConfig<ProjectConfig>(
+  projectPath,
+  { owner: "", repos: [] },
+) ?? { owner: "", repos: [] };
+
+/** GitHub 用户名：项目页各节仓库与「查看更多」按钮共用 */
+export const PROJECT_OWNER = projectConfig.owner;
+
+/** 精选项目的仓库名（不含作者）；为空则该区块不渲染 */
+export const PROJECT_FEATURED_REPO = projectConfig.featured?.repo ?? "";
+
+/** 我的仓库列表（仓库名 + 是否置顶） */
+export const PROJECT_REPOS = projectConfig.repos ?? [];
+
+/** 底部「在 GitHub 查看更多」按钮（text / url）；为空则不渲染 */
+export const PROJECT_MORE = projectConfig.more ?? null;
+
+// ==================== 友链页配置（friend.links / friend.sites / friend.resources） ====================
+
+/** 友链：互换链接的朋友站点（头像 + 简介卡片） */
+export const FRIEND_LINKS =
+  readOptionalConfig<FriendLinksConfig>(friendLinksPath, { items: [] })?.items ??
+  [];
+
+/** 友站：渲染成带在线状态检测的小徽章 */
+export const FRIEND_SITES =
+  readOptionalConfig<FriendSitesConfig>(friendSitesPath, { items: [] })?.items ??
+  [];
+
+/** 常用资源：渲染成链接卡（字段与 LinkCard 组件对齐） */
+export const FRIEND_RESOURCES =
+  readOptionalConfig<FriendResourcesConfig>(friendResourcesPath, {
+    items: [],
+  })?.items ?? [];

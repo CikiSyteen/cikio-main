@@ -4,6 +4,13 @@ import MainCard from "@/components/MainCard.astro";
 import GitHubStats from "@/components/mdx/GitHubStats.astro";
 import RepositoryCard from "@/components/mdx/RepositoryCard.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+// 项目页内容全部来自 config/project.yaml：加项目、换账号都只改那个文件
+import {
+  PROJECT_FEATURED_REPO,
+  PROJECT_MORE,
+  PROJECT_OWNER,
+  PROJECT_REPOS,
+} from "@config";
 ---
 
 <BaseLayout title="项目">
@@ -13,40 +20,53 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     textOverlay="PROJECTS"
     infoIcon="lucide:code-2"
   >
-    <!-- Featured Projects -->
-    <section class="py-4">
-      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-        <Icon name="lucide:star" class="w-6 h-6 text-primary" />
-        <span>精选项目</span>
-      </h2>
+    <!-- Featured Projects：配置了精选仓库才渲染 -->
+    {
+      PROJECT_OWNER && PROJECT_FEATURED_REPO && (
+        <section class="py-4">
+          <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Icon name="lucide:star" class="w-6 h-6 text-primary" />
+            <span>精选项目</span>
+          </h2>
 
-      <GitHubStats username="CikiSyteen" repositoryName="cikio-main" />
-    </section>
+          <GitHubStats username={PROJECT_OWNER} repositoryName={PROJECT_FEATURED_REPO} />
+        </section>
+      )
+    }
 
-    <!-- My Repositories -->
-    <section class="py-4">
-      <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-        <Icon name="lucide:folder" class="w-6 h-6 text-primary" />
-        <span>我的仓库</span>
-      </h2>
+    <!-- My Repositories：config/project.yaml 的 repos 列表 -->
+    {
+      PROJECT_OWNER && PROJECT_REPOS.length > 0 && (
+        <section class="py-4">
+          <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Icon name="lucide:folder" class="w-6 h-6 text-primary" />
+            <span>我的仓库</span>
+          </h2>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <RepositoryCard repo="CikiSyteen/cikio-main" isPinned={true} />
-      </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {PROJECT_REPOS.map((item) => (
+              <RepositoryCard repo={`${PROJECT_OWNER}/${item.repo}`} isPinned={item.pinned} />
+            ))}
+          </div>
+        </section>
+      )
+    }
 
-      <div class="flex justify-center mt-10">
-        <a
-          href="https://github.com/CikiSyteen?tab=repositories"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="btn btn-outline gap-2"
-        >
-          <Icon name="lucide:github" class="w-5 h-5" />
-          <span>在 GitHub 查看更多</span>
-        </a>
-      </div>
-    </section>
-
-
+    <!-- 底部跳转按钮：与仓库列表相互独立，配置了才渲染 -->
+    {
+      PROJECT_MORE && (
+        <div class="flex justify-center mt-10">
+          <a
+            href={PROJECT_MORE.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-outline gap-2"
+          >
+            <Icon name="lucide:github" class="w-5 h-5" />
+            <span>{PROJECT_MORE.text}</span>
+          </a>
+        </div>
+      )
+    }
   </MainCard>
 </BaseLayout>

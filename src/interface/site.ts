@@ -179,3 +179,79 @@ export interface HomeHolidayDay {
 }
 
 export type HomeHolidayMap = Record<string, HomeHolidayDay>;
+
+// ===== 项目页配置：config/project.yaml =====
+
+export interface ProjectFeaturedConfig {
+  /** 精选项目的仓库名（不含作者，作者取顶层的 owner） */
+  repo: string;
+}
+
+export interface ProjectRepoItem {
+  /** 仓库名（不含作者） */
+  repo: string;
+  /** 是否显示「已置顶」角标 */
+  pinned?: boolean;
+}
+
+export interface ProjectMoreConfig {
+  /** 按钮文案 */
+  text: string;
+  /** 按钮链接 */
+  url: string;
+}
+
+export interface ProjectConfig {
+  /** GitHub 用户名，各节仓库都挂在这个账号下 */
+  owner: string;
+  /** 精选项目（顶部大卡）；缺省则该区块不渲染 */
+  featured?: ProjectFeaturedConfig;
+  /** 我的仓库（卡片网格）；缺省或为空则该区块不渲染 */
+  repos?: ProjectRepoItem[];
+  /** 底部跳转按钮；缺省则不渲染 */
+  more?: ProjectMoreConfig;
+}
+
+// ===== 友链页配置：config/friend.links.yaml / friend.sites.yaml / friend.resources.yaml =====
+
+/** 友链：互换链接的朋友站点 */
+export interface FriendLinkItem {
+  name: string;
+  /** 头像地址：/ 开头的站内路径或完整 https 地址 */
+  avatar: string;
+  description: string;
+  url: string;
+}
+
+export interface FriendLinksConfig {
+  items: FriendLinkItem[];
+}
+
+/** 友站：渲染成带在线状态检测的小徽章 */
+export interface FriendSiteItem {
+  name: string;
+  url: string;
+}
+
+export interface FriendSitesConfig {
+  items: FriendSiteItem[];
+}
+
+/** 常用资源：渲染成链接卡，字段与 LinkCard 组件对齐 */
+export interface FriendResourceItem {
+  title: string;
+  desc: string;
+  url: string;
+  /** Iconify 图标名，与 img 二选一（img 优先） */
+  icon?: string;
+  /** 卡片左侧图片，站内路径或完整 https 地址 */
+  img?: string;
+  /** 标题旁的小角标 */
+  badge?: string;
+  /** 卡片底部的分类标签 */
+  categories?: string[];
+}
+
+export interface FriendResourcesConfig {
+  items: FriendResourceItem[];
+}

@@ -1,0 +1,40 @@
+# =============================================================================
+# 「常用资源」配置（/friend 页的「常用资源」区块）
+#
+# 每项渲染成一张链接卡。字段：
+#   title      资源名（卡片标题）          必填
+#   desc       一句话说明                  必填
+#   url        链接地址                    必填
+#   icon       图标名，Iconify 格式（如 simple-icons:astro）；填了 img 时忽略
+#   img        可选，卡片左侧的图片：站内图填 / 开头路径，也可填完整 https 地址
+#   badge      可选，标题旁的小角标（如「推荐」）
+#   categories 可选，卡片底部的分类标签
+#
+# 留空时页面显示占位提示；本文件可选，删掉等同于留空。
+# 改完需要重新构建（pnpm build）才会出现在页面上。
+# =============================================================================
+
+items:
+  - title: Astro 官方文档
+    desc: Astro 的官方文档，从入门到进阶技巧都有。
+    url: "https://docs.astro.build"
+    icon: simple-icons:astro
+    categories: [文档, 学习, 参考]
+
+  - title: Tailwind CSS 文档
+    desc: 了解如何用 Tailwind 的工具类写样式，不必手写 CSS。
+    url: "https://tailwindcss.com/docs"
+    icon: simple-icons:tailwindcss
+    categories: [文档, CSS, 参考]
+
+  - title: daisyUI 组件库
+    desc: 浏览 daisyUI 的组件库，学习在项目中的用法。
+    url: "https://daisyui.com/components/"
+    icon: simple-icons:daisyui
+    categories: [组件, UI, 参考]
+
+  - title: TypeScript 手册
+    desc: TypeScript 官方手册，系统讲解这门语言。
+    url: "https://www.typescriptlang.org/docs/handbook/intro.html"
+    icon: simple-icons:typescript
+    categories: [文档, TypeScript, 参考]

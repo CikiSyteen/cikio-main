@@ -6,17 +6,9 @@ import LinkCard from "@/components/mdx/LinkCard.astro";
 import Showcase from "@/components/mdx/Showcase.astro";
 import CardGroup from "@/components/temple/CardGroup.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-
-// 友链列表：以后加人时在这里追加一项即可（name / avatar / description / url）
-const friends: {
-  name: string;
-  avatar: string;
-  description: string;
-  url: string;
-}[] = [];
-
-// 友站列表：徽章样式（带在线状态检测），为空时页面显示占位提示
-const sites: { name: string; url: string }[] = [];
+// 友链 / 友站 / 常用资源分别来自 config/ 下的独立配置文件：
+// friend.links.yaml、friend.sites.yaml、friend.resources.yaml
+import { FRIEND_LINKS, FRIEND_RESOURCES, FRIEND_SITES } from "@config";
 ---
 
 <BaseLayout title="友链">
@@ -36,9 +28,9 @@ const sites: { name: string; url: string }[] = [];
           </h2>
 
           {
-            friends.length > 0 ? (
+            FRIEND_LINKS.length > 0 ? (
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {friends.map((friend) => (
+                {FRIEND_LINKS.map((friend) => (
                   <FriendCard
                     name={friend.name}
                     avatar={friend.avatar}
@@ -62,9 +54,9 @@ const sites: { name: string; url: string }[] = [];
           </h2>
 
           {
-            sites.length > 0 ? (
+            FRIEND_SITES.length > 0 ? (
               <div class="flex flex-wrap items-center gap-3">
-                {sites.map((site) => (
+                {FRIEND_SITES.map((site) => (
                   <Showcase name={site.name} url={site.url} />
                 ))}
               </div>
@@ -81,39 +73,25 @@ const sites: { name: string; url: string }[] = [];
             <span>常用资源</span>
           </h2>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <LinkCard
-              title="Astro 官方文档"
-              desc="Astro 的官方文档，从入门到进阶技巧都有。"
-              url="https://docs.astro.build"
-              icon="simple-icons:astro"
-              categories={["文档", "学习", "参考"]}
-            />
-
-            <LinkCard
-              title="Tailwind CSS 文档"
-              desc="了解如何用 Tailwind 的工具类写样式，不必手写 CSS。"
-              url="https://tailwindcss.com/docs"
-              icon="simple-icons:tailwindcss"
-              categories={["文档", "CSS", "参考"]}
-            />
-
-            <LinkCard
-              title="daisyUI 组件库"
-              desc="浏览 daisyUI 的组件库，学习在项目中的用法。"
-              url="https://daisyui.com/components/"
-              icon="simple-icons:daisyui"
-              categories={["组件", "UI", "参考"]}
-            />
-
-            <LinkCard
-              title="TypeScript 手册"
-              desc="TypeScript 官方手册，系统讲解这门语言。"
-              url="https://www.typescriptlang.org/docs/handbook/intro.html"
-              icon="simple-icons:typescript"
-              categories={["文档", "TypeScript", "参考"]}
-            />
-          </div>
+          {
+            FRIEND_RESOURCES.length > 0 ? (
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {FRIEND_RESOURCES.map((resource) => (
+                  <LinkCard
+                    title={resource.title}
+                    desc={resource.desc}
+                    url={resource.url}
+                    icon={resource.icon}
+                    img={resource.img}
+                    badge={resource.badge}
+                    categories={resource.categories}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p class="text-base-content/70">还没有添加常用资源。</p>
+            )
+          }
         </section>
 
         <div class="divider my-8">
