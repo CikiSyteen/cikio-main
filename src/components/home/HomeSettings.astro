@@ -30,10 +30,8 @@ export interface HomeSettingsProps {
 // 所有 prop 都会退化成 any（上面导出的 HomeSettingsProps 就成了死代码）。
 // 缺省值只是运行时兜底：prop 缺失时退化为"没有可选背景"，而不是在
 // backgrounds.length 处抛错。
-const {
-  backgrounds = [],
-  defaultBackground = "",
-} = Astro.props as HomeSettingsProps;
+const { backgrounds = [], defaultBackground = "" } =
+  Astro.props as HomeSettingsProps;
 
 const defaults = {
   bg: defaultBackground,
