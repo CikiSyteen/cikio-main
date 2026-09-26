@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="winter" data-theme-type="light" data-theme-mode="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>首页「一言」配置生成器 · Cikio</title>
+<link rel="icon" href="data:,">  <!-- 免得 file:// 下浏览器去找不存在的 favicon -->
+<!--
+  =============================================================================
+  首页「一言」配置生成器 —— 本地工具，用来生成 / 维护 config/home.quotes.yaml
+  =============================================================================
+
+  · 纯本地：双击本文件用浏览器打开即可（file:// 下也能复制、能下载）。
+  · 不参与构建：放在 scripts/ 而不是 public/ 或 src/pages/，
+    所以 Astro 不会打包它、站点里也没有任何入口 —— 它只是个顺手的生成器。
+  · 离线可用：没有 CDN、没有外链字体。配色是站点两套 daisyUI 主题
+    （winter / dracula）的真实色值，直接内联进来，主题切换键也与站点一致。
+  · 上限口径与卡片实现对齐（详见下方 LINE_H / MAX_LINES 常量与隐藏标尺），数字来自 1024px
+    视口下的真机测量（dist/index.html 的 [data-quote-text]）：
+      正文区固定 86px 高 = 3 行 text-sm/leading-relaxed（22.75px/行）
+      最窄档文字宽 213px = 15 个全角字/行
+      ⇒ 实测 45 字 = 3 行（正好放满）；46 字 = 4 行，会溢出卡片
+      ⇒ 单条正文 ≤ 45 字；1～2 行（≤ 32 字）观感最好
+  · 每条只有 text 字段：作者/出处（author）已从首页卡片移除，这里也不再生成。
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ---- 站点浅色主题 winter（daisyUI 色值取自编译产物） ---- */
+  :root {
+    --p: 56.86% .255 257.57;
+    --pc: 91.372% .051 257.57;
+    --s: 42.5516% .161098 282.339;
+    --sc: 88.5103% .03222 282.339;
+    --n: 19.6166% .063518 257.652;
+    --b1: 100% 0 0;
+    --b2: 97.4663% .011947 259.823;
+    --b3: 93.2686% .016223 262.751;
+    --bc: 41.8869% .053885 255.825;
+    --er: 73.0926% .110185 20.0763;
+
+    /* 状态色单独定义：daisyUI 的 *-content 是"实色底上的字"，
+       拿来做浅底徽标会掉对比度，这里按主题各配一套。 */
+    --ok-text: oklch(45% .1 165);
+    --ok-bg: oklch(80% .077 197.824 / .3);
+    --warn-text: oklch(46% .1 70);
+    --warn-bg: oklch(89.1725% .045833 71.4703 / .55);
+    --danger-text: oklch(46% .19 25);
+    --danger-bg: oklch(73.0926% .110185 20.0763 / .2);
+
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+    color-scheme: light;
+  }
+
+  /* ---- 站点深色主题 dracula ---- */
+  [data-theme="dracula"] {
+    --p: 75.4611% .18307 346.812;
+    --pc: 15.0922% .036614 346.812;
+    --s: 74.2023% .148546 301.883;
+    --sc: 14.8405% .029709 301.883;
+    --n: 39.4456% .032576 275.524;
+    --b1: 28.8229% .022103 277.509;
+    --b2: 26.8053% .020556 277.509;
+    --b3: 24.7877% .019009 277.509;
+    --bc: 97.7477% .007913 106.545;
+    --er: 68.2204% .206328 24.431;
+
+    --ok-text: oklch(84% .14 165);
+    --ok-bg: oklch(87.0995% .219516 148.025 / .18);
+    --warn-text: oklch(88% .12 85);
+    --warn-bg: oklch(95.5338% .134246 112.757 / .16);
+    --danger-text: oklch(80% .15 20);
+    --danger-bg: oklch(68.2204% .206328 24.431 / .2);
+
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: oklch(var(--b3));
+    color: oklch(var(--bc));
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 68rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* ---- 页头（不套卡片，与站内 hero 区的做法一致） ---- */
+  .page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .page-head h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .page-head h1 svg { width: 1.375rem; height: 1.375rem; color: oklch(var(--p)); }
+
+  .page-head p {
+    margin-top: .375rem;
+    font-size: .8125rem;
+    color: oklch(var(--bc) / .6);
+  }
+
+  .page-head code {
+    font-family: var(--font-mono);
+    font-size: .8125em;
+    padding: .1em .35em;
+    border-radius: .375rem;
+    background: oklch(var(--b2));
+    border: 1px solid oklch(var(--b3));
+  }
+
+  /* ---- 两栏：与首页 0.85 : 1.15 的同款比例 ---- */
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+  }
+
+  .column { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+
+  /* ---- 卡片：对齐 .home-widget / WidgetCard.astro 的卡片语言 ---- */
+  .card {
+    border-radius: 1rem;
+    border: 1px solid oklch(var(--b3) / .8);
+    background-color: oklch(var(--b1));
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  .card-head h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .card-head h2 svg { width: 1.25rem; height: 1.25rem; color: oklch(var(--p)); }
+
+  .card-head-right {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-left: auto;
+    font-size: .75rem;
+    color: oklch(var(--bc) / .6);
+  }
+
+  .hint { font-size: .75rem; color: oklch(var(--bc) / .55); font-weight: 400; }
+
+  /* ---- 按钮：daisyUI 的观感（高度/圆角/主色底） ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border: 1px solid oklch(var(--bc) / .2);
+    border-radius: .5rem;
+    background-color: oklch(var(--b1));
+    color: oklch(var(--bc) / .85);
+    font-family: inherit;
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease,
+      transform .15s ease, opacity .2s ease;
+  }
+
+  .btn svg { width: 1rem; height: 1rem; }
+  .btn:hover { background-color: oklch(var(--b2)); color: oklch(var(--bc)); }
+  .btn:active { transform: scale(.97); }
+
+  .btn-primary {
+    background-color: oklch(var(--p));
+    color: oklch(var(--pc));
+    border-color: transparent;
+  }
+
+  .btn-primary:hover { background-color: oklch(var(--p) / .9); color: oklch(var(--pc)); }
+
+  .btn-xs { height: 1.75rem; padding: 0 .6rem; font-size: .75rem; }
+  .btn-xs svg { width: .875rem; height: .875rem; }
+  .btn-ghost { background-color: transparent; border-color: transparent; }
+  .btn-ghost:hover { background-color: oklch(var(--b2)); }
+
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn:disabled:active { transform: none; }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px oklch(var(--b1)), 0 0 0 4px oklch(var(--p) / .6);
+  }
+
+  /* ---- 分段控件（主题 / 输出范围共用） ---- */
+  .segmented {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: .75rem;
+    background-color: oklch(var(--b2));
+    border: 1px solid oklch(var(--b3));
+  }
+
+  .segmented button {
+    border: 0;
+    background: transparent;
+    color: oklch(var(--bc) / .65);
+    font-family: inherit;
+    font-size: .75rem;
+    line-height: 1;
+    padding: .45rem .7rem;
+    border-radius: .6rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    transition: background-color .2s ease, color .2s ease;
+  }
+
+  .segmented button svg { width: .875rem; height: .875rem; }
+  .segmented button:hover { color: oklch(var(--bc)); }
+
+  .segmented button[aria-pressed="true"] {
+    background-color: oklch(var(--p));
+    color: oklch(var(--pc));
+    font-weight: 600;
+  }
+
+  /* ---- 输入控件 ---- */
+  label.field-label {
+    display: block;
+    font-size: .8125rem;
+    font-weight: 500;
+    color: oklch(var(--bc) / .75);
+    margin-bottom: .4rem;
+  }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    font-family: inherit;
+    font-size: .875rem;
+    line-height: 1.6;
+    color: oklch(var(--bc));
+    background-color: oklch(var(--b1));
+    border: 1px solid oklch(var(--bc) / .2);
+    border-radius: .5rem;
+    padding: .6rem .75rem;
+    resize: vertical;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+
+  textarea::placeholder, input::placeholder { color: oklch(var(--bc) / .35); }
+
+  textarea:focus, input[type="text"]:focus {
+    outline: none;
+    border-color: oklch(var(--p));
+    box-shadow: 0 0 0 3px oklch(var(--p) / .18);
+  }
+
+  textarea.mono { font-family: var(--font-mono); font-size: .8125rem; }
+
+  /* ---- 新增区：输入 + 卡片预览 ---- */
+  .compose {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 720px) {
+    .compose { grid-template-columns: minmax(0, 1fr) auto; }
+  }
+
+  .compose-preview { display: flex; flex-direction: column; gap: .4rem; }
+
+  .mini-label { font-size: .6875rem; color: oklch(var(--bc) / .55); }
+
+  /* 复刻一言卡的正文区：最窄档 222px 宽 × 88px 高，
+     text-sm(14px) + leading-relaxed(1.625) = 每行 22.75px，正好 3 行。 */
+  .quote-preview {
+    position: relative;
+    width: 213px;
+    height: 86px;
+    padding: .25rem .5rem;
+    font-size: 14px;
+    line-height: 22.75px;
+    color: oklch(var(--bc) / .85);
+    background-color: oklch(var(--b2));
+    border: 1px dashed oklch(var(--bc) / .25);
+    border-radius: .5rem;
+    overflow: visible;
+    word-break: break-word;
+  }
+
+  /* 第 3 行下沿：越过这条线就是溢出卡片 */
+  .quote-preview::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(.25rem + 68.25px);
+    border-top: 1px dashed oklch(var(--p) / .5);
+    pointer-events: none;
+  }
+
+  .quote-preview.overflow { color: oklch(var(--danger-text)); }
+
+  /* 隐藏标尺：与实际卡片同为 213px 宽 / 14px / 22.75px，
+     用它量真实折行行数（比"字数 ÷ 15"准：标点会让折行更早）。 */
+  .measure {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 213px;
+    font-size: 14px;
+    line-height: 22.75px;
+    word-break: break-word;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .counter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .4rem;
+    flex-wrap: wrap;
+  }
+
+  .counter { font-size: .75rem; color: oklch(var(--bc) / .6); font-variant-numeric: tabular-nums; }
+  .counter.warn { color: oklch(var(--warn-text)); font-weight: 600; }
+  .counter.danger { color: oklch(var(--danger-text)); font-weight: 600; }
+
+  .row-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  .notice { font-size: .75rem; color: oklch(var(--bc) / .6); }
+  .notice.warn { color: oklch(var(--warn-text)); }
+  .notice.danger { color: oklch(var(--danger-text)); }
+  .notice.ok { color: oklch(var(--ok-text)); }
+
+  /* ---- 徽标 ---- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    padding: .1rem .45rem;
+    border-radius: 1rem;
+    font-size: .6875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    background-color: oklch(var(--b2));
+    color: oklch(var(--bc) / .7);
+    white-space: nowrap;
+  }
+
+  .badge-ok { background-color: var(--ok-bg); color: var(--ok-text); }
+  .badge-warn { background-color: var(--warn-bg); color: var(--warn-text); }
+  .badge-danger { background-color: var(--danger-bg); color: var(--danger-text); }
+
+  /* ---- 条目列表 ---- */
+  .rows {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    max-height: 26rem;
+    overflow-y: auto;
+    padding-right: .25rem;
+  }
+
+  .row {
+    display: flex;
+    align-items: flex-start;
+    gap: .625rem;
+    padding: .5rem .625rem;
+    border-radius: .75rem;
+    border: 1px solid transparent;
+    background-color: oklch(var(--b2) / .7);
+    transition: background-color .2s ease, border-color .2s ease;
+  }
+
+  .row:hover { background-color: oklch(var(--b2)); }
+
+  .row.is-over {
+    border-color: oklch(var(--er) / .45);
+    background-color: var(--danger-bg);
+  }
+
+  .row-index {
+    font-family: var(--font-mono);
+    font-size: .6875rem;
+    color: oklch(var(--bc) / .45);
+    min-width: 1.5rem;
+    padding-top: .1rem;
+    text-align: right;
+  }
+
+  .row-text {
+    flex: 1;
+    min-width: 0;
+    font-size: .8125rem;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .row-meta {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 9rem;
+  }
+
+  .row-actions { display: flex; gap: .125rem; }
+
+  /* 输入框右下角的徽标行（比列表行里的 .row-meta 宽松些） */
+  .badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .25rem;
+    flex-wrap: wrap;
+  }
+
+  .icon-btn {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: .5rem;
+    background: transparent;
+    color: oklch(var(--bc) / .5);
+    cursor: pointer;
+    transition: background-color .2s ease, color .2s ease;
+  }
+
+  .icon-btn svg { width: .875rem; height: .875rem; }
+  .icon-btn:hover { background-color: oklch(var(--b3)); color: oklch(var(--bc)); }
+  .icon-btn.danger:hover { color: oklch(var(--danger-text)); background-color: var(--danger-bg); }
+  .icon-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .icon-btn:disabled:hover { background: transparent; color: oklch(var(--bc) / .5); }
+
+  .empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: .8125rem;
+    color: oklch(var(--bc) / .5);
+  }
+
+  /* ---- YAML 输出 ---- */
+  .yaml {
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    line-height: 1.65;
+    background-color: oklch(var(--b2));
+    border: 1px solid oklch(var(--b3));
+    border-radius: .75rem;
+    padding: .875rem;
+    max-height: 24rem;
+    overflow: auto;
+    white-space: pre-wrap;   /* 长句自动折行，不用横向拖 */
+    word-break: break-word;
+    tab-size: 2;
+    color: oklch(var(--bc) / .9);
+  }
+
+  .yaml .cm { color: oklch(var(--bc) / .45); }
+  .yaml .key { color: oklch(var(--p)); }
+
+  .tip {
+    display: flex;
+    gap: .5rem;
+    font-size: .75rem;
+    line-height: 1.6;
+    color: oklch(var(--bc) / .65);
+    background-color: oklch(var(--b2) / .7);
+    border: 1px solid oklch(var(--b3));
+    border-radius: .75rem;
+    padding: .6rem .7rem;
+  }
+
+  .tip svg { width: 1rem; height: 1rem; flex: none; color: oklch(var(--p)); margin-top: .1rem; }
+  .tip code { font-family: var(--font-mono); font-size: .9em; }
+</style>
+<script>
+  /* 主题：与站点完全同一套规则（localStorage.theme = light / dark / auto，
+     旧值 winter / dracula 自动迁移），在样式计算前落到 <html>，避免闪一下浅色。 */
+  (function () {
+    var LIGHT = "winter", DARK = "dracula";
+    function readMode() {
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) { stored = null; }
+      if (stored === "light" || stored === "dark" || stored === "auto") return stored;
+      if (stored === LIGHT) return "light";
+      if (stored === DARK) return "dark";
+      return "auto";
+    }
+    function resolve() {
+      var mode = readMode();
+      var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      var type = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
+      return { mode: mode, type: type, theme: type === "dark" ? DARK : LIGHT };
+    }
+    function apply() {
+      var r = resolve();
+      var root = document.documentElement;
+      root.setAttribute("data-theme", r.theme);
+      root.setAttribute("data-theme-type", r.type);
+      root.setAttribute("data-theme-mode", r.mode);
+      return r;
+    }
+    apply();
+    window.__quotesTheme = { apply: apply, readMode: readMode, resolve: resolve, LIGHT: LIGHT, DARK: DARK };
+  })();
+</script>
+</head>
+<body>
+<!-- 图标雪碧图（内联，无外链） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-quote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>
+    <path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>
+  </symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12h14M12 5v14"/>
+  </symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+  </symbol>
+  <symbol id="i-import" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 19h16"/>
+  </symbol>
+  <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6"/>
+  </symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+  </symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
+  </symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/>
+  </symbol>
+  <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m6 15 6-6 6 6"/>
+  </symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m6 9 6 6 6-6"/>
+  </symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 6 6 18M6 6l12 12"/>
+  </symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+  </symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/>
+  </symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+  </symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>
+  </symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
+  </symbol>
+</svg>
+
+<div class="measure" aria-hidden="true"><span id="measureText"></span></div>
+
+<div class="page">
+  <header class="page-head">
+    <div>
+      <h1><svg><use href="#i-quote"/></svg>首页「一言」配置生成器</h1>
+      <p>
+        生成 <code>config/home.quotes.yaml</code> —— 本地工具，不参与站点构建，站内没有入口
+      </p>
+    </div>
+    <div class="segmented" id="themeSwitch" role="group" aria-label="主题">
+      <button type="button" data-mode="light" aria-pressed="false">
+        <svg><use href="#i-sun"/></svg>浅色
+      </button>
+      <button type="button" data-mode="dark" aria-pressed="false">
+        <svg><use href="#i-moon"/></svg>深色
+      </button>
+      <button type="button" data-mode="auto" aria-pressed="true">
+        <svg><use href="#i-monitor"/></svg>跟随系统
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- ================= 左栏 ================= -->
+    <div class="column">
+      <section class="card">
+        <header class="card-head">
+          <h2><svg><use href="#i-plus"/></svg>新增一条</h2>
+          <span class="hint">Ctrl / ⌘ + Enter 快速添加</span>
+        </header>
+
+        <div class="compose">
+          <div>
+            <label class="field-label" for="textInput">正文（text）</label>
+            <textarea id="textInput" rows="3" placeholder="例如：道虽迩，不行不至；事虽小，不为不成。"></textarea>
+            <div class="counter-row">
+              <span class="counter" id="charCounter">0 / 45 字</span>
+              <span class="badge-row" id="inputBadges"></span>
+            </div>
+          </div>
+
+          <div class="compose-preview">
+            <span class="mini-label">卡片预览 · 最窄档 213 × 86px</span>
+            <div class="quote-preview" id="quotePreview"><span id="previewText"></span></div>
+          </div>
+        </div>
+
+        <div class="row-actions">
+          <button class="btn btn-primary" id="addItemBtn" type="button">
+            <svg><use href="#i-plus"/></svg>加入列表
+          </button>
+          <span class="notice" id="inputNotice"></span>
+        </div>
+
+        <div class="tip">
+          <svg><use href="#i-info"/></svg>
+          <div>
+            卡片正文区固定 86px 高 = 3 行，最窄档（1024px 视口实测 213px 宽）每行约 15 个汉字，
+            所以纯汉字 <strong>≤ 45 字</strong>（实测 45 字正好 3 行、46 字就掉到 4 行）。
+            带标点时折行会更早，行数以右上角预览的真实渲染为准 —— 它就是按最窄档 1:1 复刻的。
+            长度按字符数统计，YAML 里的字面 <code>\n</code> 算 2 个字符，且会原样显示（不是换行）。
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-head">
+          <h2><svg><use href="#i-list"/></svg>条目列表</h2>
+          <div class="card-head-right">
+            <span id="listStats">0 条</span>
+            <button class="btn btn-ghost btn-xs" id="clearBtn" type="button">
+              <svg><use href="#i-trash"/></svg>清空
+            </button>
+          </div>
+        </header>
+        <ol class="rows" id="itemsList"></ol>
+      </section>
+    </div>
+
+    <!-- ================= 右栏 ================= -->
+    <div class="column">
+      <section class="card">
+        <header class="card-head">
+          <h2><svg><use href="#i-import"/></svg>导入现有配置</h2>
+          <span class="hint">整段粘贴也行</span>
+        </header>
+        <label class="field-label" for="pasteArea">粘贴 home.quotes.yaml 或纯文本（一行一条）</label>
+        <textarea id="pasteArea" class="mono" rows="6" placeholder="items:&#10;  - text: 不积跬步，无以至千里；不积小流，无以成江海。&#10;  - text: 吾生也有涯，而知也无涯。"></textarea>
+        <div class="row-actions">
+          <button class="btn btn-xs" id="parseAppendBtn" type="button">解析并追加</button>
+          <button class="btn btn-xs" id="parseReplaceBtn" type="button">解析并替换</button>
+          <span class="notice" id="importNotice"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-head">
+          <h2><svg><use href="#i-file"/></svg>YAML 输出</h2>
+          <div class="segmented" id="scopeSwitch" role="group" aria-label="输出范围">
+            <button type="button" data-scope="items" aria-pressed="true">items 片段</button>
+            <button type="button" data-scope="full" aria-pressed="false">完整文件</button>
+          </div>
+        </header>
+        <pre class="yaml" id="outputPreview"></pre>
+        <div class="row-actions">
+          <button class="btn btn-primary btn-xs" id="copyBtn" type="button">
+            <svg><use href="#i-copy"/></svg>复制
+          </button>
+          <button class="btn btn-xs" id="downloadBtn" type="button">
+            <svg><use href="#i-download"/></svg>下载 .yaml
+          </button>
+          <span class="notice" id="copyFeedback" role="status" aria-live="polite"></span>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    // ===== 口径常量：与 RandomQuoteWidget.astro / index.astro 的实际版式对齐 =====
+    // 正文区 86px 高 = 3 行；最窄档（1024px 视口）文字宽 213px。
+    // 实测：纯汉字 45 个 = 正好 3 行，46 个 = 4 行溢出；
+    //      带标点时折行更早，所以行数一律用隐藏标尺真实测量，不用字数估算。
+    var LINE_H = 22.75;  // text-sm(14px) × leading-relaxed(1.625)
+    var MAX_LINES = 3;   // 正文区能放下的行数
+    var LIMIT = 45;      // 纯汉字口径的经验上限，仅用于输入框的进度提示
+    var DRAFT_KEY = "cikio-home-quotes-draft";
+    var THEME_KEY = "theme";
+    var THEME = window.__quotesTheme;
+
+    // 用 fromCharCode 构造，避免源码里出现会被误读的转义序列
+    var LF = String.fromCharCode(10);
+    var CR = String.fromCharCode(13);
+    var TAB = String.fromCharCode(9);
+    var BS = String.fromCharCode(92);
+    var HARD_N = BS + "n";        // YAML 纯量里的"反斜杠 + n"，会原样显示
+    var HARD_T = BS + "t";
+    var QUOTE = String.fromCharCode(34);
+
+    var items = [];               // string[]，每条只有正文
+    var scope = "items";          // items | full
+
+    var el = {
+      textInput: document.getElementById("textInput"),
+      charCounter: document.getElementById("charCounter"),
+      inputBadges: document.getElementById("inputBadges"),
+      inputNotice: document.getElementById("inputNotice"),
+      quotePreview: document.getElementById("quotePreview"),
+      previewText: document.getElementById("previewText"),
+      addItemBtn: document.getElementById("addItemBtn"),
+      itemsList: document.getElementById("itemsList"),
+      listStats: document.getElementById("listStats"),
+      clearBtn: document.getElementById("clearBtn"),
+      pasteArea: document.getElementById("pasteArea"),
+      parseAppendBtn: document.getElementById("parseAppendBtn"),
+      parseReplaceBtn: document.getElementById("parseReplaceBtn"),
+      importNotice: document.getElementById("importNotice"),
+      outputPreview: document.getElementById("outputPreview"),
+      measureText: document.getElementById("measureText"),
+      scopeSwitch: document.getElementById("scopeSwitch"),
+      copyBtn: document.getElementById("copyBtn"),
+      downloadBtn: document.getElementById("downloadBtn"),
+      copyFeedback: document.getElementById("copyFeedback"),
+      themeSwitch: document.getElementById("themeSwitch")
+    };
+
+    // ===================== 度量与校验 =====================
+
+    // 用隐藏标尺量真实折行行数 —— 与实际卡片同为 213px 宽 / 14px / 22.75px，
+    // 所以连标点造成的提前折行也算得进来，比"字数 ÷ 15"可靠。
+    function linesOf(text) {
+      if (!text) return 0;
+      el.measureText.textContent = text;
+      return Math.max(1, Math.round(el.measureText.getBoundingClientRect().height / LINE_H));
+    }
+
+    function levelOf(text) {
+      if (!text) return "empty";
+      var lines = linesOf(text);
+      if (lines > MAX_LINES) return "over";
+      if (lines === MAX_LINES) return "full";
+      return "ok";
+    }
+
+    function hasHardN(text) { return text.indexOf(HARD_N) !== -1; }
+    function hasHardT(text) { return text.indexOf(HARD_T) !== -1; }
+    function hasRealBreak(text) { return text.indexOf(LF) !== -1 || text.indexOf(CR) !== -1; }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    // ===================== YAML 编码 =====================
+
+    // 纯量什么时候必须加引号：不然 YAML 会解析失败或意思变了
+    function needsQuote(text) {
+      if (text === "") return true;
+      if (/^[-?:,[\]{}#&*!|>'"%@`]/.test(text)) return true;   // 首字符是 YAML 指示符
+      if (text.indexOf(": ") !== -1 || /:$/.test(text)) return true;
+      if (/ #/.test(text)) return true;
+      if (/^[\s]|[\s]$/.test(text)) return true;                // 首尾空白
+      if (hasRealBreak(text) || text.indexOf(TAB) !== -1) return true;  // 换行/制表符
+      if (/[\u0000-\u001f]/.test(text)) return true;            // 其它控制字符
+      return false;
+    }
+
+    // 双引号标量：逐字符转义，保证「字面反斜杠 n」与「真换行」不会互相混淆
+    function toDoubleQuoted(text) {
+      var out = "";
+      for (var i = 0; i < text.length; i++) {
+        var ch = text.charAt(i);
+        var code = text.charCodeAt(i);
+        if (ch === BS) out += BS + BS;
+        else if (ch === QUOTE) out += BS + QUOTE;
+        else if (code === 10) out += BS + "n";
+        else if (code === 13) out += BS + "r";
+        else if (code === 9) out += BS + "t";
+        else out += ch;
+      }
+      return QUOTE + out + QUOTE;
+    }
+
+    function yamlScalar(text) {
+      return needsQuote(text) ? toDoubleQuoted(text) : text;
+    }
+
+    // 反解双引号标量（导入时用），与 toDoubleQuoted 互为逆运算
+    function fromDoubleQuoted(text) {
+      var body = text.slice(1, -1);
+      var out = "";
+      for (var i = 0; i < body.length; i++) {
+        var ch = body.charAt(i);
+        if (ch === BS && i + 1 < body.length) {
+          var next = body.charAt(++i);
+          if (next === "n") out += LF;
+          else if (next === "r") out += CR;
+          else if (next === "t") out += TAB;
+          else out += next;              // \\ → \ ，\" → "
+        } else {
+          out += ch;
+        }
+      }
+      return out;
+    }
+
+    function unquote(text) {
+      if (text.length >= 2 && text.charAt(0) === QUOTE && text.charAt(text.length - 1) === QUOTE) {
+        return fromDoubleQuoted(text);
+      }
+      if (text.length >= 2 && text.charAt(0) === "'" && text.charAt(text.length - 1) === "'") {
+        return text.slice(1, -1).replace(/''/g, "'");
+      }
+      return text;
+    }
+
+    var HEADER_COMMENT = [
+      "# =============================================================================",
+      "# 首页「随机一言」配置",
+      "#",
+      "# items 留空则首页不渲染这张卡片。",
+      "# 本文件可选：删掉它首页就不显示一言卡片。",
+      "#",
+      "# 每条只有 text 字段（作者/出处已不再支持）。",
+      "# 卡片正文区固定 86px 高（= 3 行 text-sm/leading-relaxed），宽度随断点变化，",
+      "# 最窄的一档是 lg 起点（1024px 视口实测 213px 宽 = 15 个全角字/行），",
+      "# 所以单条正文请控制在 45 字以内（含标点）；1～2 行（≤32 字）观感最好。",
+      "# 每个 `" + HARD_N + "` 按 2 个字位计入长度。",
+      "# 注意：`" + HARD_N + "` 在这里是纯量，不会变成换行，会原样显示成反斜杠加 n。",
+      "# =============================================================================",
+      ""
+    ];
+
+    var FOOTER_COMMENT = [
+      "",
+      "# 一言已改为固定「每次刷新随机一条」，不再提供轮换设置项；此处的 interval",
+      "# 仅作文档说明，实际行为由组件写死为 refresh。",
+      "interval: refresh"
+    ];
+
+    function buildYaml() {
+      var lines = scope === "full" ? HEADER_COMMENT.slice() : [];
+      lines.push("items:");
+      if (items.length === 0) {
+        lines.push("  # 还没有条目，用左侧「新增一条」添加");
+      } else {
+        for (var i = 0; i < items.length; i++) {
+          lines.push("  - text: " + yamlScalar(items[i]));
+        }
+      }
+      if (scope === "full") lines = lines.concat(FOOTER_COMMENT);
+      return lines.join(LF) + LF;
+    }
+
+    // ===================== 渲染 =====================
+
+    function badgeHtml(text, kind) {
+      return '<span class="badge ' + (kind || "") + '">' + escapeHtml(text) + "</span>";
+    }
+
+    function metaHtml(text) {
+      var out = "";
+      var level = levelOf(text);
+      var lines = linesOf(text);
+      out += badgeHtml(text.length + " 字", "");
+      out += badgeHtml(lines + " 行 / " + MAX_LINES, level === "over" ? "badge-danger" : (level === "full" ? "badge-warn" : "badge-ok"));
+      if (hasHardN(text)) out += badgeHtml(HARD_N + " 字面", "badge-warn");
+      if (hasRealBreak(text)) out += badgeHtml("含换行", "badge-warn");
+      if (hasHardT(text)) out += badgeHtml(HARD_T + " 字面", "badge-warn");
+      if (needsQuote(text)) out += badgeHtml("输出加引号", "");
+      return out;
+    }
+
+    function renderList() {
+      if (items.length === 0) {
+        el.itemsList.innerHTML = '<li class="empty">还没有条目。左侧添加一条，或粘贴一份现有配置解析进来。</li>';
+      } else {
+        var html = "";
+        for (var i = 0; i < items.length; i++) {
+          var text = items[i];
+          var padded = (i + 1 < 10 ? "0" : "") + (i + 1);
+          html += '<li class="row' + (levelOf(text) === "over" ? " is-over" : "") + '" data-index="' + i + '">' +
+            '<span class="row-index">' + padded + "</span>" +
+            '<span class="row-text">' + escapeHtml(text) + "</span>" +
+            '<span class="row-meta">' + metaHtml(text) + "</span>" +
+            '<span class="row-actions">' +
+            '<button class="icon-btn" type="button" data-act="up" title="上移" aria-label="上移第 ' + (i + 1) + ' 条"' + (i === 0 ? " disabled" : "") + '><svg><use href="#i-up"/></svg></button>' +
+            '<button class="icon-btn" type="button" data-act="down" title="下移" aria-label="下移第 ' + (i + 1) + ' 条"' + (i === items.length - 1 ? " disabled" : "") + '><svg><use href="#i-down"/></svg></button>' +
+            '<button class="icon-btn danger" type="button" data-act="del" title="删除" aria-label="删除第 ' + (i + 1) + ' 条"><svg><use href="#i-trash"/></svg></button>' +
+            "</span>" +
+            "</li>";
+        }
+        el.itemsList.innerHTML = html;
+      }
+
+      var over = 0;
+      var total = 0;
+      for (var j = 0; j < items.length; j++) {
+        total += items[j].length;
+        if (levelOf(items[j]) === "over") over++;
+      }
+      var stats = items.length + " 条";
+      if (items.length > 0) stats += " · 共 " + total + " 字";
+      if (over > 0) stats += " · 超限 " + over;
+      el.listStats.textContent = stats;
+    }
+
+    function renderOutput() {
+      var yaml = buildYaml();
+      // 轻量高亮：注释行压暗、键名上主色，方便肉眼扫
+      el.outputPreview.innerHTML = yaml
+        .split(LF)
+        .map(function (line) {
+          if (/^\s*#/.test(line)) return '<span class="cm">' + escapeHtml(line) + "</span>";
+          var m = /^(\s*(?:-\s*)?)([A-Za-z_][\w-]*)(:)/.exec(line);
+          if (m) return escapeHtml(m[1]) + '<span class="key">' + escapeHtml(m[2]) + "</span>" + escapeHtml(line.slice(m[0].length - 1));
+          return escapeHtml(line);
+        })
+        .join(LF);
+    }
+
+    function renderCompose() {
+      var text = el.textInput.value;
+      var len = text.length;
+      var level = levelOf(text);
+      var lines = linesOf(text);
+
+      el.charCounter.textContent = len + " / " + LIMIT + " 字";
+      el.charCounter.className = "counter" + (level === "over" ? " danger" : (level === "full" ? " warn" : ""));
+
+      var badges = "";
+      if (len > 0) {
+        badges += badgeHtml(lines + " 行 / " + MAX_LINES, level === "over" ? "badge-danger" : (level === "full" ? "badge-warn" : "badge-ok"));
+        if (hasHardN(text)) badges += badgeHtml(HARD_N + " 会原样显示", "badge-warn");
+        if (hasRealBreak(text)) badges += badgeHtml("换行会折叠成空格", "badge-warn");
+      }
+      el.inputBadges.innerHTML = badges;
+
+      el.previewText.textContent = text;
+      el.quotePreview.className = "quote-preview" + (level === "over" ? " overflow" : "");
+
+      if (level === "over") {
+        setNotice(el.inputNotice, len + " 字排到 " + lines + " 行，超出卡片正文区（3 行）会画到外面，建议精简。", "danger");
+      } else if (level === "full") {
+        setNotice(el.inputNotice, "刚好占满 3 行，可以接受；想更透气就再砍几个字。", "warn");
+      } else if (len > 0) {
+        setNotice(el.inputNotice, "长度合适（" + lines + " 行）。", "ok");
+      } else {
+        setNotice(el.inputNotice, "", "");
+      }
+    }
+
+    function setNotice(node, text, kind) {
+      node.textContent = text;
+      node.className = "notice" + (kind ? " " + kind : "");
+    }
+
+    function render() {
+      renderList();
+      renderOutput();
+      renderCompose();
+      save();
+    }
+
+    // ===================== 增删改 =====================
+
+    function addItem() {
+      var text = el.textInput.value.replace(/\s+$/, "").replace(/^\s+/, "");
+      if (!text) {
+        setNotice(el.inputNotice, "先写点内容吧。", "warn");
+        el.textInput.focus();
+        return;
+      }
+      // 上限只提示、不拦截：留长句子在列表里，方便自己决定怎么砍
+      items.push(text);
+      el.textInput.value = "";
+      render();
+      el.textInput.focus();
+    }
+
+    function removeItem(index) {
+      items.splice(index, 1);
+      render();
+    }
+
+    function moveItem(index, delta) {
+      var target = index + delta;
+      if (target < 0 || target >= items.length) return;
+      var tmp = items[index];
+      items[index] = items[target];
+      items[target] = tmp;
+      render();
+    }
+
+    // ===================== 导入解析 =====================
+
+    // 支持：items: 片段 / 裸列表 / 一行一条的纯文本；
+    // 忽略注释与 interval 等其它键；author 行会被跳过（字段已废弃）。
+    function parseImport(raw) {
+      var lines = raw.replace(/\r\n?/g, LF).split(LF);
+      var parsed = [];
+      var skippedAuthor = 0;
+      var skippedOther = 0;
+      var i;
+
+      for (i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var trimmed = line.trim();
+        if (trimmed === "" || trimmed.charAt(0) === "#") continue;
+
+        // 列表项：- text: xxx 或裸列表 - xxx
+        var itemMatch = /^-\s*text\s*:\s*(.*)$/.exec(trimmed) || /^-\s*(.+)$/.exec(trimmed);
+        if (itemMatch) {
+          var itemRes = readValue(itemMatch[1].trim(), lines, i);
+          i = itemRes.next;
+          if (itemRes.text) parsed.push(itemRes.text);
+          continue;
+        }
+
+        // 到这里的都是"键: 值"形式的行
+        if (/^author\s*:/.test(trimmed)) { skippedAuthor++; continue; }
+        if (/^(items|interval|index)\s*:/.test(trimmed)) continue;
+
+        var textMatch = /^text\s*:\s*(.*)$/.exec(trimmed);
+        if (textMatch) {
+          var textRes = readValue(textMatch[1].trim(), lines, i);
+          i = textRes.next;
+          if (textRes.text) parsed.push(textRes.text);
+          continue;
+        }
+
+        // 其它 YAML 键（或含冒号的英文句子）：忽略，但记一笔
+        if (/^[A-Za-z_][\w-]*\s*:/.test(trimmed)) { skippedOther++; continue; }
+
+        // 都不是：按"一行一条"的纯文本收下
+        parsed.push(trimmed);
+      }
+
+      return { items: parsed, skippedAuthor: skippedAuthor, skippedOther: skippedOther };
+    }
+
+    // 读取一个标量值：支持双/单引号、块标量（| 与 >），返回 { text, next }
+    function readValue(value, lines, index) {
+      if (value === "|" || value === "|-" || value === ">" || value === ">-") {
+        var folded = value.charAt(0) === ">";
+        var parentIndent = lines[index].search(/\S/);   // 块标量块的缩进基准
+        if (parentIndent < 0) parentIndent = 0;
+        var block = [];
+        var blockIndent = -1;
+        var j = index + 1;
+        for (; j < lines.length; j++) {
+          var l = lines[j];
+          var indent = l.search(/\S/);
+          if (l.trim() === "") { block.push(""); continue; }   // 块内空行保留位置
+          if (indent <= parentIndent) break;                   // 缩进退回 = 块结束
+          if (blockIndent < 0) blockIndent = indent;
+          block.push(l.slice(blockIndent));
+        }
+        while (block.length && block[block.length - 1].trim() === "") block.pop();
+        return { text: block.join(folded ? " " : LF), next: j - 1 };
+      }
+      if (value === "null" || value === "~") return { text: "", next: index };
+      return { text: unquote(value), next: index };
+    }
+
+    function importItems(replace) {
+      var raw = el.pasteArea.value;
+      if (!raw.trim()) {
+        setNotice(el.importNotice, "粘贴区是空的。", "warn");
+        return;
+      }
+      var result = parseImport(raw);
+      if (result.items.length === 0) {
+        setNotice(el.importNotice, "没解析到条目，检查一下格式。", "danger");
+        return;
+      }
+      items = replace ? result.items : items.concat(result.items);
+      el.pasteArea.value = "";
+      render();
+
+      var msg = "解析到 " + result.items.length + " 条，已" + (replace ? "替换" : "追加");
+      if (result.skippedAuthor > 0) msg += "；跳过 " + result.skippedAuthor + " 行 author（字段已废弃）";
+      if (result.skippedOther > 0) msg += "；忽略其它 " + result.skippedOther + " 行";
+      setNotice(el.importNotice, msg, "ok");
+    }
+
+    // ===================== 复制 / 下载 =====================
+
+    function copyOutput() {
+      var content = buildYaml();
+      var done = function (ok) {
+        setNotice(el.copyFeedback, ok ? "已复制 ✓" : "复制失败，请手动选择", ok ? "ok" : "danger");
+        window.setTimeout(function () { setNotice(el.copyFeedback, "", ""); }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(content).then(function () { done(true); }, function () { done(fallbackCopy(content)); });
+      } else {
+        done(fallbackCopy(content));
+      }
+    }
+
+    // file:// 不是安全上下文，navigator.clipboard 可能不可用，兜底用 execCommand
+    function fallbackCopy(content) {
+      var ta = document.createElement("textarea");
+      ta.value = content;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    function downloadOutput() {
+      var blob = new Blob([buildYaml()], { type: "text/yaml;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "home.quotes.yaml";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ===================== 草稿 & 主题 =====================
+
+    function save() {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ items: items, scope: scope }));
+      } catch (e) { /* 无痕模式等场景忽略即可 */ }
+    }
+
+    function load() {
+      var raw = null;
+      try { raw = localStorage.getItem(DRAFT_KEY); } catch (e) { raw = null; }
+      if (!raw) return;
+      try {
+        var data = JSON.parse(raw);
+        if (data && Array.isArray(data.items)) {
+          items = data.items.filter(function (t) { return typeof t === "string" && t.length > 0; });
+        }
+        if (data && (data.scope === "items" || data.scope === "full")) scope = data.scope;
+      } catch (e) { /* 草稿坏了就当没有 */ }
+    }
+
+    function syncThemeButtons() {
+      var mode = THEME.readMode();
+      var buttons = el.themeSwitch.querySelectorAll("button");
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].setAttribute("aria-pressed", buttons[i].getAttribute("data-mode") === mode ? "true" : "false");
+      }
+    }
+
+    function setThemeMode(mode) {
+      try {
+        if (mode === "auto") localStorage.removeItem(THEME_KEY);
+        else localStorage.setItem(THEME_KEY, mode);
+      } catch (e) { /* 存不了也不影响当前会话 */ }
+      THEME.apply();
+      syncThemeButtons();
+    }
+
+    function syncScopeButtons() {
+      var buttons = el.scopeSwitch.querySelectorAll("button");
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].setAttribute("aria-pressed", buttons[i].getAttribute("data-scope") === scope ? "true" : "false");
+      }
+    }
+
+    // ===================== 事件绑定 =====================
+
+    function bind() {
+      el.textInput.addEventListener("input", renderCompose);
+
+      el.textInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          addItem();
+        }
+      });
+
+      el.addItemBtn.addEventListener("click", addItem);
+
+      el.itemsList.addEventListener("click", function (e) {
+        var btn = e.target.closest("button[data-act]");
+        if (!btn || btn.disabled) return;
+        var row = e.target.closest(".row");
+        if (!row) return;
+        var index = parseInt(row.getAttribute("data-index"), 10);
+        var act = btn.getAttribute("data-act");
+        if (act === "del") removeItem(index);
+        else if (act === "up") moveItem(index, -1);
+        else if (act === "down") moveItem(index, 1);
+      });
+
+      el.clearBtn.addEventListener("click", function () {
+        if (items.length === 0) return;
+        if (!window.confirm("清空列表里的 " + items.length + " 条？（草稿也会一起清掉）")) return;
+        items = [];
+        render();
+      });
+
+      el.parseAppendBtn.addEventListener("click", function () { importItems(false); });
+      el.parseReplaceBtn.addEventListener("click", function () { importItems(true); });
+
+      el.copyBtn.addEventListener("click", copyOutput);
+      el.downloadBtn.addEventListener("click", downloadOutput);
+
+      el.scopeSwitch.addEventListener("click", function (e) {
+        var btn = e.target.closest("button[data-scope]");
+        if (!btn) return;
+        scope = btn.getAttribute("data-scope");
+        syncScopeButtons();
+        renderOutput();
+        save();
+      });
+
+      el.themeSwitch.addEventListener("click", function (e) {
+        var btn = e.target.closest("button[data-mode]");
+        if (!btn) return;
+        setThemeMode(btn.getAttribute("data-mode"));
+      });
+
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+        if (THEME.readMode() === "auto") { THEME.apply(); syncThemeButtons(); }
+      });
+    }
+
+    function init() {
+      load();
+      syncThemeButtons();
+      syncScopeButtons();
+      bind();
+      render();
+      el.textInput.focus();
+    }
+
+    init();
+  })();
+</script>
+</body>
+</html>
