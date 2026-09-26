@@ -6,7 +6,7 @@ import WidgetCard from "./WidgetCard.astro";
 /**
  * 「一言」卡片。
  *
- * 内容池来自 home.config.yaml 的 quotes.items（留空则整张卡不渲染）。
+ * 内容池来自 config/home.quotes.yaml 的 items（留空则整张卡不渲染）。
  * 服务端先渲染第一条，客户端接管后按轮换方式决定显示哪一条 ——
  * 轮换方式的默认值来自配置，访客可以用右上角齿轮面板覆盖（存 localStorage）。
  * 四种方式（不轮换 / 每日 / 每次刷新 / 每 N 秒）的定义与解析见 @utils/homeRotation。

@@ -1,6 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { Config, HomeConfig, HomeHolidayMap } from "@interfaces/site";
+import type {
+  Config,
+  HomeBackgroundConfig,
+  HomeConfig,
+  HomeHolidayMap,
+  HomeHolidaysConfig,
+  HomeQuotesConfig,
+} from "@interfaces/site";
 // js-yaml 5 起为纯命名导出（无 default export）
 import { load as loadYaml } from "js-yaml";
 // 必须用相对路径，不能用 @utils 别名：tailwind.config.mjs 会 import 本文件，
@@ -10,8 +17,10 @@ import { normalizeRotation } from "./utils/homeRotation";
 
 // 配置文件路径（站点 YAML 配置统一放在 config/ 目录下）
 const configPath = path.resolve("config/frosti.config.yaml");
-// 首页（hero）配置；这个文件是可选的，缺失时首页退回到内置的空配置
-const homeConfigPath = path.resolve("config/home.config.yaml");
+// 首页（hero）配置拆成三个独立文件，各自可选：缺失时对应模块退回内置空值
+const homeBackgroundPath = path.resolve("config/home.background.yaml");
+const homeQuotesPath = path.resolve("config/home.quotes.yaml");
+const homeHolidaysPath = path.resolve("config/home.holidays.yaml");
 // 翻译文件路径
 const translationsPath = path.resolve("src/i18n/translations.yaml");
 // 读取并解析 YAML 文件
@@ -93,11 +102,21 @@ export function t(key: string): string {
 
 // ==================== 首页（hero）配置 ====================
 
-const homeConfig = (
-  fs.existsSync(homeConfigPath)
-    ? loadYaml(fs.readFileSync(homeConfigPath, "utf8"))
-    : {}
-) as HomeConfig;
+/** 读取一个首页配置文件；文件不存在就返回兜底值（这三块配置都是可选的） */
+function readHomeConfig<T>(filePath: string, fallback: T): T {
+  if (!fs.existsSync(filePath)) return fallback;
+  return loadYaml(fs.readFileSync(filePath, "utf8")) as T;
+}
+
+// 三个独立文件在这里合成同一个 homeConfig，下面的导出与组件都按原结构取用，
+// 拆分对上游完全透明。
+const homeConfig: HomeConfig = {
+  background: readHomeConfig<HomeBackgroundConfig>(homeBackgroundPath, {
+    images: [],
+  }),
+  quotes: readHomeConfig<HomeQuotesConfig>(homeQuotesPath, { items: [] }),
+  holidays: readHomeConfig<HomeHolidaysConfig>(homeHolidaysPath, {}),
+};
 
 /** 背景图候选列表（访客可在首页齿轮面板里切换） */
 export const HOME_BACKGROUNDS = homeConfig.background?.images ?? [];

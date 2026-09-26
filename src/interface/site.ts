@@ -115,7 +115,7 @@ export interface Config {
   user: UserConfig;
 }
 
-// ==================== 首页（hero）配置：home.config.yaml ====================
+// ===== 首页（hero）配置：config/home.background.yaml / home.quotes.yaml / home.holidays.yaml =====
 
 export interface HomeBackgroundItem {
   id: string;

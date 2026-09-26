@@ -14,7 +14,7 @@ import type { HomeBackgroundItem } from "@interfaces/site";
  *     等它 load 完再交换透明度，否则改 src 的那一刻会闪一下页面底色。
  *  4. 遮罩按主题分支（样式在 global.scss）：亮色只加一层极薄薄纱，暗色大幅压暗。
  *  5. 选中的图与轮换方式来自访客的 localStorage 设置（齿轮面板写入），
- *     没有设置时退回 home.config.yaml 里的默认值。
+ *     没有设置时退回 config/home.background.yaml 里的默认值。
  *
  * 轮换方式有四种（见 @utils/homeRotation）：不轮换 / 每日 / 每次刷新 / 每 N 秒。
  * 访客显式选过某张图时永远以他的选择为准，上面四种方式只在"没选过"时决定显示哪一张。
