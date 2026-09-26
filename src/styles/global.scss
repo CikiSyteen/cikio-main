@@ -177,16 +177,26 @@ code {
 //
 // 固定定位 + 负 z-index，压在全部内容之下。html 的 bg-base-300 是画在画布上的，
 // 负 z-index 的后代依然可见，所以不需要给 body 再铺一层底色。
+//
+// 加载体验分三层（配合 HomeBackdrop.astro）：
+//   容器铺兜底底色 → 层铺这张图的占位色 → 层内 <img> 到达后淡入。
+// 图片总要下载/解码一会儿，这段时间里应该看到「正确那张图的近似色」，
+// 既不是页面底色（亮色主题下就是一片白），也不该先闪一下默认壁纸。
 .home-backdrop {
   position: fixed;
   inset: 0;
   z-index: -10;
   overflow: hidden;
   pointer-events: none;
+  // 兜底底色：条目没配占位色（动态壁纸没法预设）或脚本还没跑起来时可见。
+  // 刻意用中性深色渐变而不是留白 —— 壁纸是整屏照片，照片到达前先垫一块"照片墙"的底，
+  // 观感是画面在浮现，而不是白色页面被点亮。
+  background-image: linear-gradient(160deg, #4b5563 0%, #1f2937 100%);
 }
 
 // 两层叠放：换背景图时把新图放进隐藏层，load 完再交换透明度。
 // 直接改当前层的 src 会有"图还没到、底色先露出来"的一瞬。
+// 占位色是脚本写进来的行内 background-color（取这张图的主色）；没写就透出容器的兜底底色。
 .home-backdrop-layer {
   position: absolute;
   inset: 0;
@@ -203,6 +213,15 @@ code {
   height: 100%;
   object-fit: cover;
   object-position: center;
+  // 图片到达后由脚本摘掉 .is-pending，从这里淡入 —— 占位色到照片因此是渐变而不是跳变。
+  // 默认可见：无脚本时 <noscript> 里的那张默认图不必等谁来摘类。
+  opacity: 1;
+  transition: opacity 520ms ease-out;
+}
+
+// 地址刚写进 <img>、图还在路上：先让占位色顶着
+.home-backdrop-image.is-pending {
+  opacity: 0;
 }
 
 // 亮色主题：很薄的一层，风景基本原样透出，只压掉一点刺眼的高光。

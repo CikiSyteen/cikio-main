@@ -1,7 +1,6 @@
 ---
 import {
   HOME_BACKGROUND_DEFAULT,
-  HOME_BACKGROUND_MODE,
   HOME_BACKGROUNDS,
   HOME_HOLIDAYS,
   HOME_QUOTE_MODE,
@@ -88,7 +87,6 @@ const tagCount = new Set(allPosts.flatMap((post) => post.data.tags ?? [])).size;
     slot="overlay"
     backgrounds={HOME_BACKGROUNDS}
     defaultId={HOME_BACKGROUND_DEFAULT}
-    mode={HOME_BACKGROUND_MODE}
   />
 
   <!-- 右上角齿轮：改背景图与两条轮换方式，只写 localStorage，不动服务端 -->

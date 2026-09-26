@@ -127,6 +127,14 @@ export interface HomeBackgroundItem {
   path?: string;
   /** 动态壁纸的完整图片地址（如 api.bimg.cc 的 302 跳转源），与 path 二选一 */
   url?: string;
+  /**
+   * 图片到达前铺在壁纸层上的占位色，填这张图的大致主色（如 "#5e7579"）。
+   *
+   * 首屏与站内换页时，图片总是要下载/解码一会儿的：没有占位色就只能露出页面底色
+   * （亮色主题下就是一片白），有了它则是一块同色系的底，图片再淡入上去。
+   * 可以留空 —— 留空时退回 CSS 里的中性兜底底色。
+   */
+  tint?: string;
 }
 
 export interface HomeBackgroundConfig {

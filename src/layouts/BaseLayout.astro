@@ -7,6 +7,9 @@ import Navbar from "@components/Navbar.astro";
 import Sidebar from "@components/Sidebar.astro";
 import MobileTOC from "@components/widgets/MobileTOC.astro";
 import {
+  HOME_BACKGROUND_DEFAULT,
+  HOME_BACKGROUND_MODE,
+  HOME_BACKGROUNDS,
   SITE_DESCRIPTION,
   SITE_FAVICON,
   SITE_LANGUAGE,
@@ -37,6 +40,23 @@ const {
 
 // hero 页面天然不需要侧栏：首页的「站点导航」小组件与侧栏的分类/标签/菜单是重复信息
 const showSidebar = !hideSidebar && !hero;
+
+/**
+ * 首页壁纸要做两件必须发生在 <head> 里的事（见 @utils/homeBackdrop）：
+ *  · 渲染壁纸配置，让解析期脚本能在任何 <img> 出现之前定下该显示哪一张；
+ *  · 提前跟动态壁纸的图床建好连接 —— 必应那两张是跨域图片，
+ *    一次 DNS + TLS 的往返在跨境线路上抵得上半个首屏。
+ * 只有 hero 页面（目前就是首页）需要，其它页面连这一小块 JSON 都不多渲染。
+ */
+const dynamicBgOrigins = hero
+  ? [
+      ...new Set(
+        HOME_BACKGROUNDS.filter((item) => item.url).map(
+          (item) => new URL(item.url as string).origin,
+        ),
+      ),
+    ]
+  : [];
 
 const pageUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const jsonLd =
@@ -139,6 +159,154 @@ const jsonLd =
         });
       })();
     </script>
+
+    <!--
+      首页壁纸的配置与决策，见 @utils/homeBackdrop。
+
+      必须放在 <head>：只有赶在壁纸的 <img> 被解析出来之前定下该显示哪一张，
+      才谈得上"既不请求、也不显示那张默认图"，同时让正确的图片请求尽早发出去。
+      放 body 里（或等 astro:page-load）都会先画一遍默认图再来纠正 —— 那正是要消掉的闪烁。
+    -->
+    {
+      hero && (
+        <>
+          {dynamicBgOrigins.map((origin) => (
+            <link rel="preconnect" href={origin} />
+          ))}
+          <script
+            type="application/json"
+            data-home-bg-data
+            is:inline
+            set:html={JSON.stringify({
+              backgrounds: HOME_BACKGROUNDS,
+              defaultId: HOME_BACKGROUND_DEFAULT,
+              mode: HOME_BACKGROUND_MODE,
+            })}
+          />
+        </>
+      )
+    }
+
+    <script is:inline>
+      (function () {
+        var SETTINGS_KEY = "cikio-home-settings";
+        var RESOLVED_KEY = "cikio-home-bg-resolved";
+        var FRESH_KEY = "cikio-home-bg-fresh";
+        var read = function (storage, key) {
+          try {
+            return JSON.parse(storage.getItem(key) || "null");
+          } catch (e) {
+            return null;
+          }
+        };
+        // 「每次显示都该换一张」的随机源（必应随机），与 @utils/homeBackdrop 的 isRotatingBg 一致
+        var isRotating = function (id) {
+          return /random$/.test(id);
+        };
+
+        try {
+          sessionStorage.setItem(FRESH_KEY, "1");
+        } catch (e) {}
+
+        try {
+          // 硬刷新 / 直接进入算一次新的「页面打开」。首页会紧接着把这次打开解析掉并把标记删掉；
+          // 其它页面没有壁纸配置，标记就留着，等第一次换页进首页时由 before-swap 消费。
+          // 站内换页不会重跑这段脚本，所以换页时那张壁纸保持不变，也不会被重新下载。
+          var payloadEl = document.querySelector("[data-home-bg-data]");
+          if (!payloadEl) return;
+
+          var payload = JSON.parse(payloadEl.textContent || "{}");
+          var list = payload.backgrounds || [];
+          if (!list.length) return;
+
+          var settings = read(localStorage, SETTINGS_KEY) || {};
+          var record = read(sessionStorage, RESOLVED_KEY);
+          var find = function (id) {
+            for (var i = 0; i < list.length; i++) {
+              if (list[i].id === id) return list[i];
+            }
+            return null;
+          };
+
+          // 该显示哪一张：与 @utils/homeBackdrop 的 wantedBgId 是同一套判断
+          // （内联脚本没法 import，改动务必同步）。
+          //   1. 上一次打开显示的那张，只有"访客显式选过、且还是这张"才继续用 ——
+          //      同一张图 URL 不变，这次刷新直接命中缓存（必应今日连那次跨境的 302 都省掉）。
+          //      随机源除外：它就是"每次刷新换一张"，沿用等于没换。
+          //   2. 访客显式选过的那张。
+          //   3. 轮换方式：每日按天取模、每次刷新随机；不轮换与定时间隔都用配置默认值
+          //      （定时模式的首张也是默认那张，之后由模块脚本按间隔换）。
+          var item =
+            record && settings.bg === record.id && !isRotating(record.id)
+              ? find(record.id)
+              : null;
+          if (!item) item = find(settings.bg);
+          if (!item) {
+            var mode =
+              settings.bgMode != null
+                ? settings.bgMode
+                : settings.bgInterval != null
+                  ? settings.bgInterval
+                  : payload.mode;
+            if (typeof mode === "string") mode = mode.trim().toLowerCase();
+            if (mode === "daily") {
+              var now = new Date();
+              var day = Math.floor(
+                Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000,
+              );
+              item = list[((day % list.length) + list.length) % list.length];
+            } else if (mode === "refresh") {
+              item = list[Math.floor(Math.random() * list.length)];
+            }
+          }
+          if (!item) item = find(payload.defaultId) || list[0];
+
+          // 动态源的请求指纹：还是同一张就沿用记录里的值（URL 一致才有缓存可命中），
+          // 换成新的一张、或这张本身就该每次换新，才取当前时间。
+          var stamp =
+            record && record.id === item.id && !isRotating(item.id)
+              ? record.stamp
+              : Date.now();
+          var srcset = "";
+          var src;
+          if (item.url) {
+            src = item.url + (item.url.indexOf("?") > -1 ? "&" : "?") + "_t=" + stamp;
+          } else {
+            src = item.path + "-1920.webp";
+            srcset = item.path + "-960.webp 960w, " + item.path + "-1920.webp 1920w";
+          }
+
+          // 落记录：首屏的解析期脚本、站内换页、预热与后续解析全部读它
+          try {
+            sessionStorage.setItem(
+              RESOLVED_KEY,
+              JSON.stringify({
+                id: item.id,
+                stamp: stamp,
+                src: src,
+                srcset: srcset || undefined,
+                tint: item.tint,
+              }),
+            );
+          } catch (e) {}
+          sessionStorage.removeItem(FRESH_KEY);
+
+          // 按最终地址预加载：下面生成的 <img> 用的就是这个 URL，
+          // 所以这一次 preload 一定用得上，不会白下一张。
+          var link = document.createElement("link");
+          link.rel = "preload";
+          link.as = "image";
+          if (srcset) {
+            link.setAttribute("imagesrcset", srcset);
+            link.setAttribute("imagesizes", "100vw");
+          }
+          link.href = src;
+          document.head.appendChild(link);
+        } catch (e) {
+          /* 决策失败就交给 astro:page-load 的对账兜底 */
+        }
+      })();
+    </script>
   </head>
 
   <body
@@ -214,6 +382,62 @@ const jsonLd =
     </div>
 
     <MobileTOC headings={headings} showTOC={showTOC} />
+
+    <script>
+      import {
+        paintBgLayer,
+        readBgPayload,
+        readResolvedBg,
+        resolveBg,
+      } from "@utils/homeBackdrop";
+
+      /** 首页在站内的路径（站点部署在根，BASE_URL 就是 "/"） */
+      const homePath = import.meta.env.BASE_URL || "/";
+
+      /**
+       * 换页进首页前，趁新页面的 HTML 还在路上，先把目标壁纸预热上。
+       *
+       * 到 before-swap 再开始下载就晚了：那时 DOM 已经要换上去，图片必然赶不上，
+       * 于是"占位色 → 照片"的过渡会明明白白地演一遍。
+       * 预热用的就是上一次解析出的那张 —— 复用规则见 @utils/homeBackdrop，
+       * 同一次页面打开内它就是本次要显示的那张，所以不会白下。
+       */
+      document.addEventListener("astro:before-preparation", (event) => {
+        if (event.to.pathname !== homePath) return;
+        const record = readResolvedBg();
+        if (!record) return;
+
+        const image = new Image();
+        if (record.srcset) {
+          image.srcset = record.srcset;
+          image.sizes = "100vw";
+        }
+        image.src = record.src;
+      });
+
+      /**
+       * 换页时新文档里的壁纸还是服务端渲染的兜底状态（没有 src、占位色是默认图那张）。
+       * 等 astro:page-load 再改就晚了：视图过渡的「新快照」在 DOM 交换那一刻就拍好了，
+       * 默认图会先被画出来。所以在交换进 DOM 之前，直接把新文档里那一层改成正确的那张 ——
+       * swap 只是把节点搬过来（属性与监听器都保留），因此不会闪。
+       */
+      document.addEventListener("astro:before-swap", (event) => {
+        const payload = readBgPayload(event.newDocument);
+        if (!payload) return; // 目标页不是首页
+
+        const resolved = resolveBg(payload);
+        if (!resolved) return;
+
+        const layer = event.newDocument.querySelector<HTMLElement>('[data-bg-layer="a"]');
+        paintBgLayer(
+          layer,
+          layer?.querySelector<HTMLImageElement>("[data-bg-image]") ?? null,
+          resolved.item,
+          resolved.record.stamp,
+          true,
+        );
+      });
+    </script>
 
     <script is:inline>
       document.addEventListener("astro:page-load", () => {

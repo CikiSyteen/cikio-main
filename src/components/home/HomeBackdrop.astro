@@ -1,75 +1,78 @@
 ---
 import type { HomeBackgroundItem } from "@interfaces/site";
+import { bgTintOf } from "@utils/homeBackdrop";
 
 /**
- * 首页的全屏风景壁纸层（参考 type/62296d 的沉浸式背景做法）。
+ * 首页的全屏风景壁纸层。
  *
- * 关键取舍：
- *  1. 固定定位 + 负 z-index，压在全部内容之下。它挂在 BaseLayout 的 body 级
- *     `backdrop` 插槽里 —— 内容区外层的 .onload-animation 带常驻 transform，
- *     放进去会把 fixed 的包含块劫持成内容列。
- *  2. 图片是 public/ 下的本地文件，按 `-960` / `-1920` 两个宽度拼 srcset，
- *     不依赖任何外链图床。
- *  3. 两层 <img> 叠放 + 透明度交叉淡入：换图时先把新图放进隐藏层，
- *     等它 load 完再交换透明度，否则改 src 的那一刻会闪一下页面底色。
- *  4. 遮罩按主题分支（样式在 global.scss）：亮色只加一层极薄薄纱，暗色大幅压暗。
- *  5. 选中的图与轮换方式来自访客的 localStorage 设置（齿轮面板写入），
- *     没有设置时退回 config/home.background.yaml 里的默认值。
+ * 加载体验是这个组件的核心约束，三层结构各管一段：
  *
- * 轮换方式有四种（见 @utils/homeRotation）：不轮换 / 每日 / 每次刷新 / 每 N 秒。
- * 访客显式选过某张图时永远以他的选择为准，上面四种方式只在"没选过"时决定显示哪一张。
+ *  1. 容器（.home-backdrop）铺中性兜底底色，层（.home-backdrop-layer）铺这张图的
+ *     占位色（tint）—— 图片总得下载/解码一会儿，这段时间里看到的应该是「正确那张图
+ *     的近似色」，而不是页面底色（亮色主题下就是一片白）。
+ *  2. 层内 <img> 图片到达后再淡入（.is-pending → opacity 0）。占位色到照片因此是渐变
+ *     而不是跳变；两层叠放 + 交换透明度负责「换图」时的交叉淡入。
+ *  3. 服务端**不渲染 src**：它只知道配置里的默认图，写上去就等于先下载、先显示一张
+ *     访客并不想看的图（随后还得再下载、再淡入换成选中那张，"先默认后选中"闪一下）。
+ *     真正的地址由紧跟其后的解析期脚本立刻写进去 —— 请求发得早，而且只请求正确的那张。
+ *
+ * 无 JS 时退回 <noscript> 里的默认图，行为与改动前一致。
+ *
+ * 其它要点：
+ *  · 固定定位 + 负 z-index，挂在 BaseLayout 的 body 级 overlay 插槽里 —— 内容区外层的
+ *    .onload-animation 带常驻 transform，放进去会把 fixed 的包含块劫持成内容列。
+ *  · 「该显示哪张」的策略、会话记录、动态源时间戳统一在 @utils/homeBackdrop；
+ *    决策点在 BaseLayout 的 <head>（那里才能在默认图被请求之前改掉地址），
+ *    站内换页由 BaseLayout 的 before-swap 复用同一套逻辑。
  */
 
 export interface HomeBackdropProps {
   backgrounds: HomeBackgroundItem[];
   defaultId: string;
-  /** 默认轮换方式，取值见 @utils/homeRotation */
-  mode: string;
 }
 
-const { backgrounds, defaultId, mode } = Astro.props as HomeBackdropProps;
+const { backgrounds, defaultId } = Astro.props as HomeBackdropProps;
 
-const active =
+// 服务端能确定的只有配置里的默认值；访客的选择要等解析期脚本。这里的默认图有两个用处：
+// 无脚本时的兜底，以及占位色的初值（有脚本时会被同帧覆盖成访客选中的那张的颜色）。
+const fallback =
   backgrounds.find((item) => item.id === defaultId) ?? backgrounds[0];
-
-/** 静态图按 -960 / -1920 拼 srcset；url 型动态壁纸没有多宽度，交给浏览器 */
-const srcsetOf = (item: HomeBackgroundItem) =>
-  item.path
-    ? `${item.path}-960.webp 960w, ${item.path}-1920.webp 1920w`
-    : undefined;
-const srcOf = (item: HomeBackgroundItem) =>
-  item.url ?? `${item.path}-1920.webp`;
-const dimsOf = (item: HomeBackgroundItem) =>
-  item.url ? { width: 1920, height: 1080 } : { width: 1920, height: 1280 };
+const fallbackSrc = fallback
+  ? (fallback.url ?? `${fallback.path}-1920.webp`)
+  : undefined;
+const fallbackTint = bgTintOf(fallback) ?? null;
 ---
 
 <div class="home-backdrop" aria-hidden="true">
-  <div class="home-backdrop-layer is-active" data-bg-layer="a">
-    {
-      active && (
-        <img
-          src={srcOf(active)}
-          srcset={srcsetOf(active)}
-          sizes="100vw"
-          alt=""
-          width={dimsOf(active).width}
-          height={dimsOf(active).height}
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-          class="home-backdrop-image"
-          data-bg-image
-          data-bg-id={active.id}
-        />
-      )
-    }
+  <div
+    class="home-backdrop-layer is-active"
+    data-bg-layer="a"
+    style={fallbackTint ? `background-color: ${fallbackTint}` : null}
+  >
+    <img
+      sizes="100vw"
+      alt=""
+      loading="eager"
+      decoding="async"
+      fetchpriority="high"
+      class="home-backdrop-image"
+      data-bg-image
+    />
+    <noscript>
+      <img
+        src={fallbackSrc}
+        alt=""
+        loading="eager"
+        decoding="async"
+        class="home-backdrop-image"
+      />
+    </noscript>
   </div>
 
   <div class="home-backdrop-layer" data-bg-layer="b">
     <img
+      sizes="100vw"
       alt=""
-      width="1920"
-      height="1280"
       loading="eager"
       decoding="async"
       class="home-backdrop-image"
@@ -85,151 +88,101 @@ const dimsOf = (item: HomeBackgroundItem) =>
   <div class="home-backdrop-veil"></div>
 </div>
 
-<script
-  type="application/json"
-  data-home-bg-data
-  is:inline
-  set:html={JSON.stringify({ backgrounds, defaultId, mode })}
-></script>
-
 {/*
-  首屏防闪：SSR 只能渲染默认壁纸，访客若选了别的图，客户端脚本（astro:page-load）
-  才会切换，于是先闪默认再切选中。这里在解析期、首屏绘制前用内联脚本把初始图直接换成
-  用户已选的那张，后续的 initBackdrop 会因「当前层已是选中项」而跳过，不再二次切换。
+  首屏落地（解析期脚本）：在图片标签之后立刻执行，早于首屏绘制，也早于任何模块脚本。
+
+  决定权不在这里 —— BaseLayout 里那段 <head> 的解析期脚本已经算好并写下了会话记录
+  （它必须更早：只有赶在默认图的请求发出之前改掉地址，才谈得上"不闪默认图"）。
+  这里只负责照着记录把地址落进 <img>：
+    · 早：请求从这一行就发出去。等到 astro:page-load 就太晚了 —— 那个事件是 window load，
+          要等页面里所有图片都下载完才触发。
+    · 少：服务端不渲染 src，所以不会"先请求默认图、再请求目标图"两份都下一遍。
+    · 稳：占位色先顶上，图片解码完再淡入，中间没有白屏。
+
+  记录缺失（脚本被拦、隐私模式写不进去）就什么都不做，交给 astro:page-load 的对账补一次。
 */}
 <script is:inline>
   (function () {
     try {
-      var raw = localStorage.getItem("cikio-home-settings");
-      if (!raw) return;
-      var settings = JSON.parse(raw);
-      var bgId = settings && settings.bg;
-      if (!bgId) return;
+      var layer = document.querySelector('[data-bg-layer="a"]');
+      var img = layer && layer.querySelector("[data-bg-image]");
+      // data-bg-id 已经有值 = 站内换页的 before-swap 已经定好了这一张，别覆盖它
+      if (!layer || !img || img.dataset.bgId) return;
 
-      var dataEl = document.querySelector("[data-home-bg-data]");
-      if (!dataEl) return;
-      var payload = JSON.parse(dataEl.textContent || "{}");
-      var list = payload.backgrounds || [];
-      var item = null;
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].id === bgId) {
-          item = list[i];
-          break;
-        }
-      }
-      if (!item) return;
+      var record = JSON.parse(
+        sessionStorage.getItem("cikio-home-bg-resolved") || "null",
+      );
+      if (!record || !record.src) return;
 
-      var img = document.querySelector(".home-backdrop-layer.is-active [data-bg-image]");
-      if (!img || img.dataset.bgId === bgId) return;
+      // 占位色：没有 tint 的条目（动态壁纸）要把服务端渲染的默认色去掉，
+      // 否则会一直顶着默认那张图的颜色 —— 占位色得对得上真正要显示的那张
+      if (record.tint) layer.style.backgroundColor = record.tint;
+      else layer.style.removeProperty("background-color");
 
-      if (item.url) {
-        img.removeAttribute("srcset");
-        img.src = item.url + (item.url.indexOf("?") > -1 ? "&" : "?") + "_t=" + Date.now();
-      } else {
-        img.srcset = item.path + "-960.webp 960w, " + item.path + "-1920.webp 1920w";
-        img.src = item.path + "-1920.webp";
-      }
-      img.dataset.bgId = bgId;
+      img.dataset.bgId = record.id;
+      if (record.srcset) img.srcset = record.srcset;
+      else img.removeAttribute("srcset");
+
+      // 先标待淡入、再赋 src：同一个同步块里完成，浏览器来不及先画一帧原图
+      img.classList.add("is-pending");
+      var reveal = function () {
+        img.classList.remove("is-pending");
+      };
+      if (img.complete && img.naturalWidth > 0) reveal();
+      else img.addEventListener("load", reveal, { once: true });
+      img.src = record.src;
     } catch (e) {
-      /* 解析失败就退回 SSR 的默认图，不影响其余功能 */
+      /* 留给 astro:page-load 的对账去补 */
     }
   })();
 </script>
 
 <script>
+  import type { HomeBgPayload } from "@utils/homeBackdrop";
+  import {
+    bgRotationOf,
+    paintBgLayer,
+    readBgPayload,
+    readBgSettings,
+    rememberResolvedBg,
+    resolveBg,
+    stampForBg,
+    wantedBgId,
+  } from "@utils/homeBackdrop";
   import type { Rotation } from "@utils/homeRotation";
-  import { dailyRotationIndex, normalizeRotation, parseRotation } from "@utils/homeRotation";
 
-  const SETTINGS_KEY = "cikio-home-settings";
-
-  /** 背景条目：本地静态图带 path，动态壁纸（必应今日/随机）带 url */
-  interface BgItem {
-    id: string;
-    path?: string;
-    url?: string;
-  }
-
-  interface BgPayload {
-    backgrounds: BgItem[];
-    defaultId: string;
-    mode: string;
-  }
-
-  // 当前正在显示的是哪一层；模块级变量在同一次会话内跨站内换页保留
+  // 当前正在显示的是哪一层；模块级变量在同一次会话内跨站内换页保留，
+  // 但每次换页后都要用 syncActiveLayer 按新 DOM 校正回来。
   let activeLayer: "a" | "b" = "a";
   let rotationTimer: number | undefined;
-
-  function readSettings(): { bg?: string; bgMode?: string; bgInterval?: number } {
-    try {
-      return JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || "{}");
-    } catch {
-      return {};
-    }
-  }
-
-  function readPayload(): BgPayload | null {
-    const element = document.querySelector<HTMLScriptElement>("[data-home-bg-data]");
-    if (!element?.textContent) return null;
-    try {
-      return JSON.parse(element.textContent);
-    } catch {
-      return null;
-    }
-  }
 
   function layerOf(name: "a" | "b"): HTMLElement | null {
     return document.querySelector<HTMLElement>(`[data-bg-layer="${name}"]`);
   }
 
   function imageOf(name: "a" | "b"): HTMLImageElement | null {
-    return layerOf(name)?.querySelector("img") ?? null;
-  }
-
-  function applySource(img: HTMLImageElement, item: BgItem): void {
-    img.dataset.bgId = item.id;
-    if (item.url) {
-      // 动态壁纸（必应今日/随机）：清掉静态 srcset；加时间戳绕过 <img> 的
-      // 同 URL 内存缓存 —— 「随机」每次都要真的换一张，302 的 no-cache 只管跳转本身
-      img.srcset = "";
-      img.src = `${item.url}${item.url.includes("?") ? "&" : "?"}_t=${Date.now()}`;
-      return;
-    }
-    img.srcset = `${item.path}-960.webp 960w, ${item.path}-1920.webp 1920w`;
-    img.src = `${item.path}-1920.webp`;
+    return layerOf(name)?.querySelector<HTMLImageElement>("[data-bg-image]") ?? null;
   }
 
   /**
-   * 访客的设置优先于配置。一并兼容旧键 bgInterval（老访客存的是裸秒数）；
-   * 背景的 0 按"不轮换"理解 —— 与一言不同，它有明确的默认图。
+   * 站内换页后是新的一份 DOM：模板里永远是 a 层带 is-active，而模块级变量还记着上一页
+   * 结束时用的是哪一层。不校正的话新图会被写进「已经可见」的那层，交叉淡入整体错位。
    */
-  function rotationOf(payload: { mode: string }): Rotation {
-    const settings = readSettings();
-    if (settings.bgMode != null) return parseRotation(settings.bgMode, "none");
-    if (settings.bgInterval != null) return parseRotation(settings.bgInterval, "none");
-    return parseRotation(normalizeRotation(payload.mode, "none"), "none");
+  function syncActiveLayer(): void {
+    activeLayer = layerOf("b")?.classList.contains("is-active") ? "b" : "a";
   }
 
-  /** 该显示哪一张：访客显式选过就一直是那张，没选过才交给轮换方式决定 */
-  function wantedId(payload: BgPayload): string {
-    const settings = readSettings();
-    if (payload.backgrounds.some((item) => item.id === settings.bg)) {
-      return settings.bg as string;
-    }
-
-    const rotation = rotationOf(payload);
-    const total = payload.backgrounds.length;
-    if (total === 0) return payload.defaultId;
-    if (rotation.kind === "refresh") {
-      return payload.backgrounds[Math.floor(Math.random() * total)].id;
-    }
-    if (rotation.kind === "daily") {
-      return payload.backgrounds[dailyRotationIndex(new Date(), total)].id;
-    }
-    return payload.defaultId;
-  }
-
-  /** 带过场的切换：首次渲染、齿轮面板改图、以及自动轮换都走这里 */
-  function switchWithFade(payload: BgPayload, id: string): void {
+  /**
+   * 带过场地切到某一张：首屏对账、齿轮面板改图、自动轮换都走这里。
+   *
+   * forceNewStamp 给自动轮换用：必应随机那张的 id 一直没变，若沿用会话记录里的时间戳，
+   * URL 不变、浏览器直接用缓存，看起来就是「到点没换」。
+   */
+  function switchWithFade(
+    payload: HomeBgPayload,
+    id: string,
+    forceNewStamp = false,
+  ): void {
     const item = payload.backgrounds.find((entry) => entry.id === id);
     if (!item) return;
     if (imageOf(activeLayer)?.dataset.bgId === id) return;
@@ -239,7 +192,10 @@ const dimsOf = (item: HomeBackgroundItem) =>
     const nextImage = imageOf(nextName);
     if (!nextLayer || !nextImage) return;
 
-    applySource(nextImage, item);
+    // 同一张图沿用记录里的时间戳（不重复下载）；换成另一张、随机源、或自动轮换才取新值
+    const stamp = forceNewStamp ? Date.now() : stampForBg(item.id);
+    const record = rememberResolvedBg(item, stamp);
+    paintBgLayer(nextLayer, nextImage, item, record.stamp, false);
 
     const swap = () => {
       nextLayer.classList.add("is-active");
@@ -257,10 +213,7 @@ const dimsOf = (item: HomeBackgroundItem) =>
   }
 
   /** 只有定时模式需要起定时器；不轮换 / 每日 / 每次刷新都不起 */
-  function startRotation(
-    payload: BgPayload,
-    rotation: Rotation,
-  ): void {
+  function startRotation(payload: HomeBgPayload, rotation: Rotation): void {
     window.clearInterval(rotationTimer);
     rotationTimer = undefined;
     if (rotation.kind !== "timer" || rotation.seconds <= 0) return;
@@ -270,26 +223,36 @@ const dimsOf = (item: HomeBackgroundItem) =>
       const current = imageOf(activeLayer)?.dataset.bgId ?? "";
       const index = payload.backgrounds.findIndex((entry) => entry.id === current);
       const next = payload.backgrounds[(index + 1) % payload.backgrounds.length];
-      switchWithFade(payload, next.id);
+      switchWithFade(payload, next.id, true);
     }, rotation.seconds * 1000);
   }
 
+  /**
+   * 对账（astro:page-load，这个事件在首次进入时其实是 window load 之后）。
+   *
+   * 首屏那张已经由解析期脚本画好了，resolveBg 会复用同一条会话记录：
+   * 目标一致时 switchWithFade 自己会 no-op，不会出现「首屏一张、随后又淡入换成另一张」。
+   * 只有解析期脚本没跑成（脚本被拦、记录写不进去）才会在这里补一次带淡入的切换 ——
+   * 也就是说首屏路径并不依赖这个时机很晚的事件，它只负责启动轮换、兜底补画。
+   */
   function initBackdrop(): void {
-    const payload = readPayload();
+    const payload = readBgPayload();
     if (!payload || payload.backgrounds.length === 0) return;
-    // 首次渲染也走带过场的切换：目标与 SSR 渲染的默认图相同时它自己会 no-op；
-    // 不同时（访客选过别张 / 轮换选中 / 必应动态壁纸要走网络），等新图 load 完
-    // 才交换透明度，SSR 的那张会一直垫底，不会闪出页面底色。
-    switchWithFade(payload, wantedId(payload));
-    startRotation(payload, rotationOf(payload));
+    syncActiveLayer();
+
+    const resolved = resolveBg(payload);
+    if (resolved) switchWithFade(payload, resolved.item.id);
+    startRotation(payload, bgRotationOf(payload, readBgSettings()));
   }
 
-  // 站内换页后 DOM 被换掉，需要在 page-load 重新绑定；齿轮改了设置则即时响应
+  // 站内换页后 DOM 被换掉，需要在 page-load 重新对齐；齿轮改了设置则即时响应
   document.addEventListener("astro:page-load", initBackdrop);
   window.addEventListener("cikio:home-settings", () => {
-    const payload = readPayload();
+    const payload = readBgPayload();
     if (!payload) return;
-    switchWithFade(payload, wantedId(payload));
-    startRotation(payload, rotationOf(payload));
+    syncActiveLayer();
+    const settings = readBgSettings();
+    switchWithFade(payload, wantedBgId(payload, settings));
+    startRotation(payload, bgRotationOf(payload, settings));
   });
 </script>

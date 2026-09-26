@@ -1,5 +1,6 @@
 ---
 import type { HomeBackgroundItem } from "@interfaces/site";
+import { isRotatingBg } from "@utils/homeBackdrop";
 import { ROTATION_OPTIONS } from "@utils/homeRotation";
 import { Icon } from "astro-icon/components";
 
@@ -48,7 +49,6 @@ const dynamicBackgrounds = backgrounds.filter((item) => item.url);
  */
 const thumbOfUrl = (url: string, w: number, h: number) =>
   url.replace(/([?&])w=\d+/, `$1w=${w}`).replace(/([?&])h=\d+/, `$1h=${h}`);
-const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
 ---
 
 <!--
@@ -139,7 +139,7 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
                       data-home-bg-option
                     />
                     <div class="flex items-center gap-3 rounded-lg border border-base-300/40 bg-base-200/40 p-2 ring-2 ring-transparent transition peer-checked:ring-primary peer-focus-visible:ring-primary">
-                      {isRandom(item) ? (
+                      {isRotatingBg(item) ? (
                         <div class="flex h-14 w-24 shrink-0 items-center justify-center rounded-md bg-base-300/50">
                           <Icon name="lucide:shuffle" class="h-6 w-6 text-primary" aria-hidden="true" />
                         </div>
@@ -156,7 +156,7 @@ const isRandom = (item: HomeBackgroundItem) => item.id.endsWith("random");
                       <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-base-content">{item.name}</p>
                         <p class="truncate text-xs text-base-content/70">
-                          {isRandom(item) ? "每次都换一张 · 来源必应" : "每天自动更新 · 来源必应"}
+                          {isRotatingBg(item) ? "每次都换一张 · 来源必应" : "每天自动更新 · 来源必应"}
                         </p>
                       </div>
                     </div>

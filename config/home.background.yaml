@@ -13,41 +13,57 @@
 # 约定：同一张图提供 -960 与 -1920 两个宽度，组件据此拼 srcset 做响应式加载。
 # 自己加图时按同样命名放两份（例如 mypic-960.webp / mypic-1920.webp）即可。
 #
+# tint 是这张图到达之前铺在壁纸层上的占位色（填大致主色即可，可留空）。
+# 图片总得下载/解码一会儿，没有占位色就只能露出页面底色（亮色主题下就是一片白），
+# 有了它则是一块同色系的底，图片再淡入上去 —— 换页与刷新时都不会闪白。
+# 下面这些值是对应 -960 图的平均色，换图时重取一次即可。
+#
 # 动态壁纸用 url 而不是 path：完整的图片地址，每次显示时由浏览器实时拉取。
 #   bing-daily  必应每日精选（当天固定，次日自动换新）
 #   bing-random 必应随机壁纸（每次拉取都不同，配合轮换间隔可自动换）
 # 接口：https://api.bimg.cc（302 跳转到真实图片，可直接作为 <img> 源）
+# 动态壁纸的内容每天/每次都不一样，没法预设占位色（不填就用中性兜底底色）。
 images:
   - id: coast
     name: 海岸黄昏
     path: /site/backgrounds/coast
+    tint: "#babbb4"
   - id: mist
     name: 云雾山峦
     path: /site/backgrounds/mist
+    tint: "#5e7579"
   - id: lake
     name: 静湖森林
     path: /site/backgrounds/lake
+    tint: "#8a9fa2"
   - id: elk-valley
     name: 晨雾河谷
     path: /site/backgrounds/elk-valley
+    tint: "#758eaa"
   - id: lighthouse-coast
     name: 灯塔风暴
     path: /site/backgrounds/lighthouse-coast
+    tint: "#2c375c"
   - id: brighton-jetty
     name: 落日栈桥
     path: /site/backgrounds/brighton-jetty
+    tint: "#555f78"
   - id: loughrigg-tarn
     name: 山谷晨光
     path: /site/backgrounds/loughrigg-tarn
+    tint: "#8b602e"
   - id: milky-way
     name: 海岸银河
     path: /site/backgrounds/milky-way
+    tint: "#1e1c2a"
   - id: sunbeams
     name: 云海森林
     path: /site/backgrounds/sunbeams
+    tint: "#8d8751"
   - id: earth-clouds
     name: 轨道云海
     path: /site/backgrounds/earth-clouds
+    tint: "#838a8d"
   - id: bing-daily
     name: 必应今日
     url: "https://api.bimg.cc/today?w=1920&h=1080&mkt=zh-CN"
