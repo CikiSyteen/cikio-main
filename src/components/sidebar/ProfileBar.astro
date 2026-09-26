@@ -2,7 +2,6 @@
 import { Image } from "astro:assets";
 import { Icon } from "astro-icon/components";
 import {
-  USER_AVATAR,
   USER_BIO,
   USER_NAME,
   USER_SIDEBAR_SOCIAL_ICONS,
@@ -27,7 +26,7 @@ import {
     class="group relative block mx-auto mb-3 max-w-[12rem] lg:max-w-none rounded-xl overflow-hidden active:scale-95 transition-transform"
   >
     <Image
-      src={USER_AVATAR}
+      src="/profile-sidebar.png"
       alt={`${USER_NAME} 的头像`}
       format="webp"
       width={250}
