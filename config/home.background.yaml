@@ -72,7 +72,7 @@ images:
     url: "https://api.bimg.cc/random?w=1920&h=1080&mkt=zh-CN"
 
 # 默认使用哪一张（填上面的 id）。留空或填了不存在的 id 时用第一张。
-default: coast
+default: lighthouse-coast
 
 # 轮换方式。三选一：
 #   不轮换：none        只显示访客选中的那张（没选过就是上面的 default）
