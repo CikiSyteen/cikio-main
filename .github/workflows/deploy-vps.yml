@@ -1,0 +1,75 @@
+name: deploy-vps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      # 迁移期：让 canonical / og / rss / sitemap / 页脚链接都带 :8443
+      # 备案通过并切到 443 后，删掉这一行即可（内容与 YAML 都不用动）
+      BLOG_SITE_URL: https://www.cikio.cn:8443
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          printf '%s' "$GITHUB_SHA" > dist/.deploy-sha
+          tar czf /tmp/dist.tar.gz -C dist .
+          ls -lh /tmp/dist.tar.gz
+
+      - name: Ship to VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          for attempt in 1 2 3; do
+            echo "::group::deploy attempt $attempt"
+            if ssh -T -i ~/.ssh/id_ed25519 \
+                 -o BatchMode=yes -o ConnectTimeout=20 \
+                 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+                 "$VPS_USER@$VPS_HOST" < /tmp/dist.tar.gz; then
+              echo "::endgroup::"
+              echo "deploy OK on attempt $attempt"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "attempt $attempt failed, retrying..."
+            sleep 10
+          done
+          echo "deploy failed after 3 attempts" >&2
+          exit 1

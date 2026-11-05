@@ -58,7 +58,10 @@ export const CODE_THEME = config.site.theme.code;
 
 // 用户个人信息
 export const USER_NAME = config.user.name;
-export const USER_SITE = config.user.site;
+// 站点对外 URL：默认读 YAML。部署到非标准端口时用环境变量覆盖
+// （canonical / og:url / og:image / JSON-LD / RSS / sitemap / robots 全部由它派生），
+// 备案通过迁回标准 443 时只需去掉部署链路里的 BLOG_SITE_URL，不必改内容。
+export const USER_SITE = process.env.BLOG_SITE_URL || config.user.site;
 export const USER_AVATAR = config.user.avatar;
 // 个人简介（侧栏 Profile 卡片与首页，留空则不渲染该行）
 export const USER_BIO = config.user.bio ?? "";
