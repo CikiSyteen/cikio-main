@@ -24,11 +24,15 @@ overrides:
   "fast-uri@3": ^3.1.6 # GHSA-4vpr-x523-8j87        < @astrojs/check>@astrojs/language-server
   "fflate@0.7": ^0.7.5 # GHSA-376h-93r7-7g6f        < satori
   "baseline-browser-mapping@2": ^2.11.0 # GHSA-w5vr-8v7q-w6rv       < @astrojs/tailwind>autoprefixer
-  "sharp@0.35": ^0.35.4 # GHSA-rgj7-g3m4-5g8c        < @playform/compress
+  "sharp@0.35": ^0.35.5 # GHSA-rgj7-g3m4-5g8c，GHSA-wq5f-xc86-pv6w  < @playform/compress / astro
   # 注意：不升到 js-yaml 5 —— astro 内部 helper 使用 4.x 的默认导出，跨大版本会直接崩
   "js-yaml@4": ^4.3.2 # GHSA-2883-xcg3-v3hh        < astro>@astrojs/internal-helpers
   "svgo@4": ^4.1.0 # GHSA-w27v-7q3p-w38r        < @playform/compress
   "devalue@5": ^5.9.1 # GHSA-jmr9-qjv8-65gv        < astro
+  "undici@8": ^8.12.2 # GHSA-2m5v-pch6-74hx，GHSA-qrxm-fqhp-jwvm  < astro>unifont
+  "vite@8": ^8.2.4 # GHSA-587h-7wmj-h5pm        < astro
+  "zod@4": ^4.6.6 # GHSA-mrhx-c7xc-m3w5        < astro / @astrojs/rss / @astrojs/sitemap
+  "source-map-js@1": ^1.2.2 # GHSA-68fv-2mgg-jv7q        < astro>magicast
 
 onlyBuiltDependencies:
   - esbuild
