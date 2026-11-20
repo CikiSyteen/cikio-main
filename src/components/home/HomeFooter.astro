@@ -10,6 +10,9 @@ import { Icon } from "astro-icon/components";
  * 这里做成一条居中的玻璃细胶囊：一行版权 + RSS。
  *
  * 社交图标不在这里重复一份 —— 它们已经放在左栏的身份区（见 HomeHero）。
+ *
+ * 备案信息只在首页出现（`Footer.astro` 是内页页脚，按站主要求不放），
+ * 单开一行摆在胶囊下方。
  */
 
 export interface HomeFooterProps {
@@ -44,13 +47,6 @@ const { class: className = "" } = Astro.props as HomeFooterProps;
         target="_blank"
         rel="noopener noreferrer">Frosti</a
       >
-      <span aria-hidden="true">·</span>
-      <a
-        href="https://beian.miit.gov.cn/"
-        class="link link-hover"
-        target="_blank"
-        rel="noopener noreferrer">沪ICP备2026062406号-1</a
-      >
     </div>
 
     <div class="tooltip tooltip-top" data-tip="RSS Feed">
@@ -62,5 +58,39 @@ const { class: className = "" } = Astro.props as HomeFooterProps;
         <Icon name="ri:rss-line" class="h-4 w-4" aria-hidden="true" />
       </a>
     </div>
+  </div>
+
+  <!--
+    备案信息单开一行：首页 hero 底部没有实体卡片衬底，
+    用极轻的 text-shadow 保证在任意壁纸上的可读性。
+    公安联网备案正在办理，号下来后把「办理中」替换成「沪公网安备XXXXXXXX号」，
+    并把 href 改为 https://beian.mps.gov.cn/#/query/webSearch?code=<编号>。
+  -->
+  <div
+    class="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-base-content/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]"
+  >
+    <a
+      href="https://beian.miit.gov.cn/"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="link link-hover hover:text-primary">沪ICP备2026062406号-1</a
+    >
+    <a
+      href="https://beian.mps.gov.cn/"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center gap-1 link link-hover hover:text-primary"
+    >
+      <img
+        src="/beian/gongan.png"
+        alt="公安联网备案"
+        width="62"
+        height="67"
+        class="h-3.5 w-auto"
+        loading="lazy"
+        decoding="async"
+      />
+      <span>公安联网备案办理中</span>
+    </a>
   </div>
 </footer>
