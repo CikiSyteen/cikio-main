@@ -15,10 +15,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-    env:
-      # 迁移期：让 canonical / og / rss / sitemap / 页脚链接都带 :8443
-      # 备案通过并切到 443 后，删掉这一行即可（内容与 YAML 都不用动）
-      BLOG_SITE_URL: https://www.cikio.cn:8443
     steps:
       - uses: actions/checkout@v4
 
